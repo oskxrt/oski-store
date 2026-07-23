@@ -105,3 +105,12 @@ No borra datos. Solo agrega columnas e índices necesarios.
 Para activar la subida de logo por archivo, ejecuta en Supabase:
 
 `PEGAR_EN_SUPABASE_OSKI_STORE_V3_2_LOGO_UPLOAD.sql`
+
+## v3.3 — personalización visual de tienda
+
+- Color editable para la barra lateral del catálogo público.
+- Fondo editable para la pantalla de carga.
+- Logo de tienda visible en la pantalla de carga.
+- Botón de restablecer colores ahora también restaura barra lateral y loading.
+
+Corre primero `PEGAR_EN_SUPABASE_OSKI_STORE_V3_3_VISUAL.sql` en Supabase.

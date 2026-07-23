@@ -173,3 +173,62 @@ input[type="file"] { padding: 11px; background: #fff; }
   .social-icon-link span { display: none; }
   .social-icon-link svg { width: 24px; height: 24px; }
 }
+
+/* OSKI Store v3.3 - personalización de barra lateral y pantalla de carga */
+:root {
+  --store-sidebar-bg: #fbfaf7;
+  --store-loader-bg: #f8f7f3;
+}
+.store-page .page-loader {
+  background: var(--store-loader-bg);
+  color: var(--store-text);
+  transition: opacity .25s ease, visibility .25s ease;
+}
+.loader-brand {
+  min-width: 120px;
+  min-height: 86px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  color: var(--store-text);
+  font-weight: 950;
+  font-size: clamp(2rem, 7vw, 4.2rem);
+  letter-spacing: -0.09em;
+  line-height: .85;
+  text-align: center;
+}
+.loader-brand img {
+  max-width: min(210px, 70vw);
+  max-height: 130px;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 28px rgba(0,0,0,.08));
+}
+.page-loader p {
+  margin: 0;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  font-size: .82rem;
+  color: color-mix(in srgb, var(--store-text) 70%, transparent);
+}
+.store-sidebar {
+  background: var(--store-sidebar-bg) !important;
+}
+.store-mobile-head {
+  background: var(--store-sidebar-bg) !important;
+}
+.design-settings-card .color-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.color-field .hint {
+  font-size: .78rem;
+  color: #64748b;
+  font-weight: 750;
+}
+.theme-preview-card {
+  border-color: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+@media(max-width:760px){
+  .design-settings-card .color-settings-grid { grid-template-columns: 1fr; }
+  .loader-brand img { max-height: 94px; }
+}

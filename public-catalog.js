@@ -32,6 +32,13 @@ function logoHTML() {
   const name = settings.brand_name || store.name;
   return settings.logo_url ? `<img src="${settings.logo_url}" alt="${escapeHTML(name)}">` : `<span>${escapeHTML(name)}</span>`;
 }
+function renderLoaderBrand() {
+  const loader = $('#storeLoader');
+  if (!loader || !store) return;
+  const name = settings.brand_name || store.name || 'Store';
+  const mark = settings.logo_url ? `<img src="${settings.logo_url}" alt="${escapeHTML(name)}">` : `<span>${escapeHTML(name)}</span>`;
+  loader.innerHTML = `<div class="loader-brand">${mark}</div><div class="loader-mark"></div><p>Cargando ${escapeHTML(name)}...</p>`;
+}
 function socialIcon(label) {
   const key = normalize(label);
   if (key.includes('instagram')) return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg>`;
@@ -153,6 +160,8 @@ async function loadStore() {
     store = storeData;
     const { data: settingsData } = await supabase.from('store_settings').select('*').eq('store_id', store.id).maybeSingle();
     settings = settingsData || { brand_name: store.name };
+    cssVars();
+    renderLoaderBrand();
     const { data, error } = await supabase.from('products').select('*, product_images(*), product_variants(*)').eq('store_id', store.id).eq('status', 'Disponible').order('created_at', { ascending:false });
     if (error) throw error;
     products = data || [];
