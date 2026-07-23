@@ -115,8 +115,24 @@ body[data-theme='boutique'] .product-card-media{background:#fff8ef}body[data-the
   .receipt-folio, .receipt-totals { text-align:left; }
 }
 @media print {
+  @page { size: A4; margin: 12mm; }
   body * { visibility: hidden !important; }
   #receiptPrintable, #receiptPrintable * { visibility: visible !important; }
-  #receiptPrintable { position:absolute; left:0; top:0; width:100%; border:0; border-radius:0; }
-  .modal-actions, .modal-head { display:none !important; }
+  #receiptPrintable {
+    position:absolute; left:0; top:0; width:100%; max-width:none;
+    border:0; border-radius:0; box-shadow:none; padding:0;
+    font-size: 11px; line-height: 1.25;
+  }
+  #receiptPrintable .receipt-head,
+  #receiptPrintable .receipt-meta,
+  #receiptPrintable .receipt-summary { gap: 14px; page-break-inside: avoid; }
+  #receiptPrintable .receipt-brand h2 { font-size: 24px; }
+  #receiptPrintable .receipt-brand p { font-size: 13px; }
+  #receiptPrintable .receipt-logo { width: 74px; height: 74px; }
+  #receiptPrintable .receipt-folio strong { font-size: 20px; }
+  #receiptPrintable table { table-layout: fixed; margin: 12px 0; }
+  #receiptPrintable th, #receiptPrintable td { padding: 7px 5px; font-size: 10.5px; overflow-wrap: anywhere; }
+  #receiptPrintable .receipt-payments h3 { font-size: 13px; margin: 12px 0 4px; }
+  #receiptPrintable .receipt-totals h1 { font-size: 24px; }
+  .modal-actions, .modal-head, .admin-sidebar, .admin-topbar { display:none !important; }
 }

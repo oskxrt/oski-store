@@ -432,7 +432,67 @@ function openReceipt(id) {
   if (!o) return;
   openModal('Recibo / pedido', `${receiptHTML(o)}<div class="modal-actions receipt-actions"><button class="btn ghost" type="button" data-print-receipt>Imprimir / PDF</button><button class="btn primary" type="button" data-whatsapp-order="${o.id}">Enviar por WhatsApp</button></div>`, true);
 }
-function printReceipt() { window.print(); }
+function printReceipt() {
+  const receipt = document.querySelector('#receiptPrintable');
+  if (!receipt) return;
+  const title = receipt.querySelector('.receipt-folio strong')?.textContent?.trim() || 'recibo';
+  const printWindow = window.open('', '_blank', 'width=920,height=1200');
+  if (!printWindow) {
+    alert('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes para imprimir el recibo.');
+    return;
+  }
+  const printStyles = `
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { margin: 0; padding: 0; background: #fff; color: #111827; font-family: Inter, Arial, sans-serif; }
+    body { padding: 0; }
+    .print-shell { width: 100%; max-width: 190mm; margin: 0 auto; }
+    .receipt { width: 100%; padding: 0; border: 0; border-radius: 0; box-shadow: none; color: #111827; background: #fff; }
+    .receipt-head { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: start; page-break-inside: avoid; }
+    .receipt-brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .receipt-brand h2 { margin: 0; font-size: 24px; line-height: 1.05; letter-spacing: -0.03em; word-break: break-word; }
+    .receipt-brand p { margin: 4px 0 0; color: #64748b; font-size: 13px; }
+    .receipt-logo { width: 74px; height: 74px; object-fit: contain; flex: 0 0 auto; }
+    .receipt-logo-fallback { width: 64px; height: 64px; border-radius: 14px; background: #111827; color: #fff; display: grid; place-items: center; font-weight: 950; font-size: 24px; flex: 0 0 auto; }
+    .receipt-folio { text-align: right; display: grid; gap: 4px; min-width: 150px; }
+    .receipt-folio span, .receipt-meta span, .receipt-summary span { color: #16a34a; font-size: 10px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+    .receipt-folio strong { font-size: 20px; line-height: 1.05; word-break: break-word; }
+    .receipt-folio em { font-style: normal; color: #64748b; font-size: 11px; }
+    .receipt-folio b { color: #16a34a; font-size: 12px; }
+    .receipt hr { border: 0; border-top: 1.5px solid #111827; margin: 16px 0; }
+    .receipt-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 10px; page-break-inside: avoid; }
+    .receipt-meta h4 { margin: 5px 0 5px; font-size: 15px; line-height: 1.2; word-break: break-word; }
+    .receipt-meta p { margin: 3px 0; color: #475569; font-size: 11px; line-height: 1.35; word-break: break-word; }
+    .receipt table { width: 100%; border-collapse: collapse; margin: 12px 0; table-layout: fixed; page-break-inside: auto; }
+    .receipt thead { display: table-header-group; }
+    .receipt tr { page-break-inside: avoid; page-break-after: auto; }
+    .receipt th { color: #64748b; text-transform: uppercase; font-size: 9px; letter-spacing: .06em; line-height: 1.1; }
+    .receipt th, .receipt td { text-align: left; padding: 7px 5px; border-bottom: 1px solid #e5e7eb; vertical-align: top; font-size: 10.5px; line-height: 1.25; overflow-wrap: anywhere; }
+    .receipt table th:nth-child(1), .receipt table td:nth-child(1) { width: 36%; }
+    .receipt table th:nth-child(2), .receipt table td:nth-child(2) { width: 20%; }
+    .receipt table th:nth-child(3), .receipt table td:nth-child(3) { width: 10%; text-align: center; }
+    .receipt table th:nth-child(4), .receipt table td:nth-child(4), .receipt table th:nth-child(5), .receipt table td:nth-child(5) { width: 17%; text-align: right; }
+    .receipt-payments { margin-top: 8px; }
+    .receipt-payments h3 { margin: 12px 0 4px; font-size: 13px; }
+    .receipt-payments table th:nth-child(1), .receipt-payments table td:nth-child(1) { width: 18%; text-align: left; }
+    .receipt-payments table th:nth-child(2), .receipt-payments table td:nth-child(2) { width: 20%; text-align: left; }
+    .receipt-payments table th:nth-child(3), .receipt-payments table td:nth-child(3) { width: 42%; text-align: left; }
+    .receipt-payments table th:nth-child(4), .receipt-payments table td:nth-child(4) { width: 20%; text-align: right; }
+    .receipt-summary { display: grid; grid-template-columns: 1fr 72mm; gap: 16px; border-top: 1.5px solid #9ca3af; padding-top: 12px; margin-top: 12px; page-break-inside: avoid; }
+    .receipt-summary p { margin: 6px 0 0; line-height: 1.35; font-size: 11px; color: #475569; }
+    .receipt-totals { text-align: right; }
+    .receipt-totals p { display: flex; justify-content: space-between; gap: 14px; margin: 5px 0; font-size: 11px; color: #475569; }
+    .receipt-totals p strong { color: #111827; white-space: nowrap; }
+    .receipt-totals h2 { margin: 12px 0 2px; color: #16a34a; font-size: 12px; line-height: 1.1; }
+    .receipt-totals h1 { margin: 0; color: #16a34a; font-size: 24px; line-height: 1.05; letter-spacing: -0.04em; }
+    @media print { .no-print { display: none !important; } }
+    @media screen { body { padding: 24px; background: #eef2f7; } .print-shell { background:#fff; padding: 20px; box-shadow: 0 24px 70px rgba(15,23,42,.12); } }
+    @media (max-width: 680px) { .receipt-head, .receipt-meta, .receipt-summary { grid-template-columns: 1fr; } .receipt-folio, .receipt-totals { text-align: left; } }
+  `;
+  printWindow.document.open();
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(title)}</title><style>${printStyles}</style></head><body><div class="print-shell">${receipt.outerHTML}</div><script>window.addEventListener('load',()=>{setTimeout(()=>{window.focus();window.print();},450)});<\/script></body></html>`);
+  printWindow.document.close();
+}
 function whatsappOrder(id) {
   const o = orders.find(x=>x.id===id);
   if (!o) return;

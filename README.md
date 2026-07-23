@@ -87,3 +87,9 @@ Ejecuta en SQL Editor:
 `PEGAR_EN_SUPABASE_OSKI_STORE_V3_OPERATIVA.sql`
 
 No borra datos. Solo agrega columnas e índices necesarios.
+
+
+## v3.1
+
+- Corrección de impresión de recibos: ahora el botón **Imprimir / PDF** abre una vista limpia del recibo y manda a imprimir solo el comprobante.
+- Ajuste de tablas, totales y tamaños para evitar textos encimados al guardar como PDF.
