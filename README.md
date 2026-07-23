@@ -114,3 +114,9 @@ Para activar la subida de logo por archivo, ejecuta en Supabase:
 - Botón de restablecer colores ahora también restaura barra lateral y loading.
 
 Corre primero `PEGAR_EN_SUPABASE_OSKI_STORE_V3_3_VISUAL.sql` en Supabase.
+
+
+## v3.4
+
+- Corrige que el color de la barra lateral del catálogo público se aplique realmente desde `store_settings.sidebar_color`.
+- Corrige que el fondo de pantalla de carga use `store_settings.loading_bg_color`.

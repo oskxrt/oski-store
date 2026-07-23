@@ -23,9 +23,12 @@ function slugFromUrl() {
 }
 function cssVars() {
   const root = document.documentElement;
+  const bg = settings.bg_color || '#f8f7f3';
   root.style.setProperty('--store-primary', settings.primary_color || '#0b0b0d');
-  root.style.setProperty('--store-bg', settings.bg_color || '#f8f7f3');
+  root.style.setProperty('--store-bg', bg);
   root.style.setProperty('--store-text', settings.text_color || '#111827');
+  root.style.setProperty('--store-sidebar-bg', settings.sidebar_color || '#fbfaf7');
+  root.style.setProperty('--store-loader-bg', settings.loading_bg_color || bg);
   document.body.dataset.theme = settings.theme || 'minimal';
 }
 function logoHTML() {
