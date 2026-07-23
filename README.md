@@ -61,3 +61,9 @@ v2:
 - Suspensión por pago vencido.
 - Subida de logo a Supabase Storage.
 - Exportación Excel.
+
+
+## v2 public route fix
+
+- Corrige rutas absolutas de CSS y JS para que `/t/:slug` cargue bien en Vercel.
+- El catálogo público ya no se queda sin estilos cuando se abre como `/t/tienda-prueba`.
