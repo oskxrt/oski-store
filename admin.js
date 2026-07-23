@@ -49,8 +49,24 @@ function updateStoreBrandUI() {
   if (sideTitle) sideTitle.textContent = name;
 }
 function colorSwatchLabel(id) { const el = $(id); return el ? String(el.value || '').toUpperCase() : ''; }
+function readableTextColor(hex) {
+  const clean = String(hex || '#ffffff').replace('#','');
+  const full = clean.length === 3 ? clean.split('').map(c=>c+c).join('') : clean;
+  const r = parseInt(full.slice(0,2),16) || 255;
+  const g = parseInt(full.slice(2,4),16) || 255;
+  const b = parseInt(full.slice(4,6),16) || 255;
+  const yiq = (r*299 + g*587 + b*114) / 1000;
+  return yiq >= 145 ? '#111827' : '#ffffff';
+}
+function updateSidebarColorPreview() {
+  const preview = $('#sidebarColorPreview');
+  if (!preview || !$('#sSidebar') || !$('#sSidebarTextColor')) return;
+  preview.style.background = $('#sSidebar').value;
+  preview.style.color = $('#sSidebarTextColor').value;
+}
 function refreshColorLabels() {
-  [['#sPrimary','#sPrimaryText'],['#sBg','#sBgText'],['#sText','#sTextText'],['#sSidebar','#sSidebarText'],['#sLoaderBg','#sLoaderBgText']].forEach(([input,label]) => { if ($(label)) $(label).textContent = colorSwatchLabel(input); });
+  [['#sPrimary','#sPrimaryText'],['#sBg','#sBgText'],['#sText','#sTextText'],['#sSidebar','#sSidebarText'],['#sSidebarTextColor','#sSidebarTextColorText'],['#sLoaderBg','#sLoaderBgText']].forEach(([input,label]) => { if ($(label)) $(label).textContent = colorSwatchLabel(input); });
+  updateSidebarColorPreview();
 }
 function logoPreviewHTML() {
   const logo = currentSettings?.logo_url || '';
@@ -135,7 +151,7 @@ async function loadCurrentStoreData() {
   if (customersRes.error) console.warn(customersRes.error);
   if (ordersRes.error) console.warn(ordersRes.error);
   if (catalogOrdersRes.error) console.warn(catalogOrdersRes.error);
-  currentSettings = settingsRes.data || { store_id: currentStore.id, brand_name: currentStore.name, theme:'minimal', primary_color:'#0b0b0d', bg_color:'#f8f7f3', text_color:'#111827', sidebar_color:'#fbfaf7', loading_bg_color:'#f8f7f3' };
+  currentSettings = settingsRes.data || { store_id: currentStore.id, brand_name: currentStore.name, theme:'minimal', primary_color:'#0b0b0d', bg_color:'#f8f7f3', text_color:'#111827', sidebar_color:'#fbfaf7', sidebar_text_color:'#111827', loading_bg_color:'#f8f7f3' };
   updateStoreBrandUI();
   products = productsRes.data || [];
   customers = customersRes.data || [];
@@ -545,8 +561,18 @@ function renderSettings() {
         <label class="color-field"><span>Color principal</span><div class="color-input-wrap"><input id="sPrimary" type="color" value="${escapeHTML(currentSettings.primary_color||'#0b0b0d')}"><code id="sPrimaryText">${escapeHTML((currentSettings.primary_color||'#0b0b0d').toUpperCase())}</code></div></label>
         <label class="color-field"><span>Fondo</span><div class="color-input-wrap"><input id="sBg" type="color" value="${escapeHTML(currentSettings.bg_color||'#f8f7f3')}"><code id="sBgText">${escapeHTML((currentSettings.bg_color||'#f8f7f3').toUpperCase())}</code></div></label>
         <label class="color-field"><span>Texto</span><div class="color-input-wrap"><input id="sText" type="color" value="${escapeHTML(currentSettings.text_color||'#111827')}"><code id="sTextText">${escapeHTML((currentSettings.text_color||'#111827').toUpperCase())}</code></div></label>
-        <label class="color-field"><span>Barra lateral tienda</span><div class="color-input-wrap"><input id="sSidebar" type="color" value="${escapeHTML(currentSettings.sidebar_color||'#fbfaf7')}"><code id="sSidebarText">${escapeHTML((currentSettings.sidebar_color||'#fbfaf7').toUpperCase())}</code></div></label>
+        <label class="color-field"><span>Fondo barra lateral</span><div class="color-input-wrap"><input id="sSidebar" type="color" value="${escapeHTML(currentSettings.sidebar_color||'#fbfaf7')}"><code id="sSidebarText">${escapeHTML((currentSettings.sidebar_color||'#fbfaf7').toUpperCase())}</code></div></label>
+        <label class="color-field"><span>Texto / iconos barra lateral</span><div class="color-input-wrap"><input id="sSidebarTextColor" type="color" value="${escapeHTML(currentSettings.sidebar_text_color||readableTextColor(currentSettings.sidebar_color||'#fbfaf7'))}"><code id="sSidebarTextColorText">${escapeHTML((currentSettings.sidebar_text_color||readableTextColor(currentSettings.sidebar_color||'#fbfaf7')).toUpperCase())}</code></div></label>
         <label class="color-field"><span>Fondo pantalla de carga</span><div class="color-input-wrap"><input id="sLoaderBg" type="color" value="${escapeHTML(currentSettings.loading_bg_color||currentSettings.bg_color||'#f8f7f3')}"><code id="sLoaderBgText">${escapeHTML((currentSettings.loading_bg_color||currentSettings.bg_color||'#f8f7f3').toUpperCase())}</code></div></label>
+      </div>
+      <div class="sidebar-color-preview" id="sidebarColorPreview">
+        <b>Vista previa barra lateral</b>
+        <span>SHOP ALL · INSTAGRAM · TIKTOK · FACEBOOK</span>
+      </div>
+      <div class="sidebar-quick-colors">
+        <button class="btn ghost small" type="button" id="sidebarTextWhite">Texto blanco</button>
+        <button class="btn ghost small" type="button" id="sidebarTextBlack">Texto negro</button>
+        <button class="btn ghost small" type="button" id="sidebarTextAuto">Auto contraste</button>
       </div>
       <label class="check"><input id="sNews" type="checkbox" ${currentSettings.show_new_arrivals?'checked':''}> Mostrar novedades</label>
       <label>Título novedades<input id="sNewsTitle" value="${escapeHTML(currentSettings.new_arrivals_title||'Novedades')}"></label>
@@ -559,11 +585,11 @@ function renderSettings() {
   previewLogoFile();
 }
 const themeColors = {
-  minimal:['#0b0b0d','#f8f7f3','#111827','#fbfaf7','#f8f7f3'],
-  boutique:['#6f4e37','#fffaf3','#2b211a','#fff4e7','#fffaf3'],
-  drop:['#111827','#ffffff','#111827','#f4f4f2','#ffffff'],
-  market:['#0f766e','#f3faf8','#10201d','#e8f5f1','#f3faf8'],
-  editorial:['#7c2d12','#f7f1ea','#1f1712','#f2e6dc','#f7f1ea']
+  minimal:['#0b0b0d','#f8f7f3','#111827','#fbfaf7','#111827','#f8f7f3'],
+  boutique:['#6f4e37','#fffaf3','#2b211a','#fff4e7','#2b211a','#fffaf3'],
+  drop:['#111827','#ffffff','#111827','#0b0b0d','#ffffff','#ffffff'],
+  market:['#0f766e','#f3faf8','#10201d','#0f766e','#ffffff','#f3faf8'],
+  editorial:['#7c2d12','#f7f1ea','#1f1712','#281810','#fff7ed','#f7f1ea']
 };
 function previewLogoFile() {
   const fileInput = $('#sLogoFile');
@@ -588,7 +614,7 @@ async function uploadLogoIfNeeded() {
 }
 async function saveSettings() {
   const logoUrl = await uploadLogoIfNeeded();
-  const row = { store_id: currentStore.id, brand_name: $('#sBrand').value.trim(), logo_url: logoUrl, whatsapp: $('#sWhatsapp').value.trim(), instagram_url: $('#sInstagram').value.trim(), tiktok_url: $('#sTiktok').value.trim(), facebook_url: $('#sFacebook').value.trim(), theme: $('#sTheme').value, primary_color: $('#sPrimary').value, bg_color: $('#sBg').value, text_color: $('#sText').value, sidebar_color: $('#sSidebar').value, loading_bg_color: $('#sLoaderBg').value, show_new_arrivals: $('#sNews').checked, new_arrivals_title: $('#sNewsTitle').value.trim() || 'Novedades' };
+  const row = { store_id: currentStore.id, brand_name: $('#sBrand').value.trim(), logo_url: logoUrl, whatsapp: $('#sWhatsapp').value.trim(), instagram_url: $('#sInstagram').value.trim(), tiktok_url: $('#sTiktok').value.trim(), facebook_url: $('#sFacebook').value.trim(), theme: $('#sTheme').value, primary_color: $('#sPrimary').value, bg_color: $('#sBg').value, text_color: $('#sText').value, sidebar_color: $('#sSidebar').value, sidebar_text_color: $('#sSidebarTextColor').value, loading_bg_color: $('#sLoaderBg').value, show_new_arrivals: $('#sNews').checked, new_arrivals_title: $('#sNewsTitle').value.trim() || 'Novedades' };
   const { error } = await supabase.from('store_settings').upsert(row, { onConflict:'store_id' });
   if (error) throw error;
 }
@@ -602,7 +628,7 @@ async function createStoreFromForm() {
   const owner = $('#newOwnerEmail').value.trim().toLowerCase();
   const { data: store, error } = await supabase.from('stores').insert({ name, slug, owner_email: owner, plan: $('#newPlan').value, status:'active' }).select().single();
   if (error) throw error;
-  await supabase.from('store_settings').insert({ store_id: store.id, brand_name: name, theme:'minimal', primary_color:'#0b0b0d', bg_color:'#f8f7f3', text_color:'#111827', sidebar_color:'#fbfaf7', loading_bg_color:'#f8f7f3' });
+  await supabase.from('store_settings').insert({ store_id: store.id, brand_name: name, theme:'minimal', primary_color:'#0b0b0d', bg_color:'#f8f7f3', text_color:'#111827', sidebar_color:'#fbfaf7', sidebar_text_color:'#111827', loading_bg_color:'#f8f7f3' });
   await supabase.from('store_members').insert({ store_id: store.id, email: owner, role:'owner', status:'active' });
 }
 async function reloadAll() { await loadStores(); await loadCurrentStoreData(); renderActiveView(); }
@@ -624,7 +650,7 @@ $('#modal').addEventListener('click', (e)=>{ if (e.target === $('#modal')) close
 document.addEventListener('input', (e)=>{
   if (e.target.closest('#orderForm')) updateOrderLiveTotals();
   if (e.target.id === 'oCustomerName') fillCustomerFromName();
-  if (['sPrimary','sBg','sText','sSidebar','sLoaderBg'].includes(e.target.id)) refreshColorLabels();
+  if (['sPrimary','sBg','sText','sSidebar','sSidebarTextColor','sLoaderBg'].includes(e.target.id)) refreshColorLabels();
 });
 document.addEventListener('change', (e)=>{
   const row = e.target.closest('[data-order-item-row]');
@@ -663,7 +689,10 @@ document.addEventListener('click', async (e)=>{
   if (e.target.closest('[data-remove-payment]')) { e.target.closest('[data-payment-row]')?.remove(); updateOrderLiveTotals(); }
   const ss = e.target.closest('[data-select-store]')?.dataset.selectStore;
   if (ss) { currentStore = stores.find(s=>s.id===ss); renderStoreSwitcher(); await loadCurrentStoreData(); showView('dashboard'); }
-  if (e.target.closest('#resetThemeColors')) { const [p,b,t,side,loader] = themeColors[$('#sTheme').value] || themeColors.minimal; $('#sPrimary').value=p; $('#sBg').value=b; $('#sText').value=t; $('#sSidebar').value=side; $('#sLoaderBg').value=loader; refreshColorLabels(); }
+  if (e.target.closest('#resetThemeColors')) { const [p,b,t,side,sideText,loader] = themeColors[$('#sTheme').value] || themeColors.minimal; $('#sPrimary').value=p; $('#sBg').value=b; $('#sText').value=t; $('#sSidebar').value=side; $('#sSidebarTextColor').value=sideText; $('#sLoaderBg').value=loader; refreshColorLabels(); }
+  if (e.target.closest('#sidebarTextWhite')) { $('#sSidebarTextColor').value = '#ffffff'; refreshColorLabels(); }
+  if (e.target.closest('#sidebarTextBlack')) { $('#sSidebarTextColor').value = '#111827'; refreshColorLabels(); }
+  if (e.target.closest('#sidebarTextAuto')) { $('#sSidebarTextColor').value = readableTextColor($('#sSidebar').value); refreshColorLabels(); }
 });
 
 document.addEventListener('submit', async (e)=>{

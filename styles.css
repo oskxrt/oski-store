@@ -284,3 +284,56 @@ input[type="file"] { padding: 11px; background: #fff; }
 @media(max-width:760px){
   .design-settings-card .color-settings-grid { grid-template-columns: 1fr; }
 }
+
+
+/* OSKI Store v3.6 - selector real de texto para barra lateral */
+.sidebar-color-preview {
+  border-radius: 24px;
+  padding: 18px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(15,23,42,.12);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.sidebar-color-preview b,
+.sidebar-color-preview span {
+  color: inherit !important;
+}
+.sidebar-color-preview b {
+  font-size: 1.05rem;
+  letter-spacing: -.02em;
+}
+.sidebar-color-preview span {
+  font-size: .82rem;
+  font-weight: 950;
+  opacity: .84;
+  letter-spacing: .06em;
+}
+.sidebar-quick-colors {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.store-sidebar .category-nav button,
+.store-sidebar .store-socials a,
+.store-sidebar #storeCopyright,
+.store-sidebar .store-logo,
+.store-sidebar .store-logo span,
+.store-sidebar small,
+.store-sidebar p,
+.store-mobile-head,
+.store-mobile-head * {
+  color: var(--store-sidebar-text) !important;
+  -webkit-text-fill-color: var(--store-sidebar-text) !important;
+}
+.store-sidebar .category-nav button.active,
+.store-sidebar .category-nav button:hover {
+  text-decoration-color: var(--store-sidebar-text) !important;
+}
+.store-sidebar .social-icon-link svg,
+.store-sidebar .social-icon-link svg * {
+  stroke: var(--store-sidebar-text) !important;
+}
+@media(max-width:760px){
+  .sidebar-quick-colors .btn { width: 100%; justify-content: center; }
+}

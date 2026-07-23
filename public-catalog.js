@@ -13,6 +13,15 @@ let settings = null;
 let products = [];
 let activeCategory = '';
 
+function readableTextColor(hex) {
+  const clean = String(hex || '#ffffff').replace('#','');
+  const full = clean.length === 3 ? clean.split('').map(c=>c+c).join('') : clean;
+  const r = parseInt(full.slice(0,2),16) || 255;
+  const g = parseInt(full.slice(2,4),16) || 255;
+  const b = parseInt(full.slice(4,6),16) || 255;
+  const yiq = (r*299 + g*587 + b*114) / 1000;
+  return yiq >= 145 ? '#111827' : '#ffffff';
+}
 function slugFromUrl() {
   const u = new URL(location.href);
   const fromQuery = u.searchParams.get('slug') || u.searchParams.get('store');
@@ -28,7 +37,7 @@ function cssVars() {
   root.style.setProperty('--store-bg', bg);
   root.style.setProperty('--store-text', settings.text_color || '#111827');
   root.style.setProperty('--store-sidebar-bg', settings.sidebar_color || '#fbfaf7');
-  root.style.setProperty('--store-sidebar-text', settings.sidebar_text_color || settings.text_color || '#111827');
+  root.style.setProperty('--store-sidebar-text', settings.sidebar_text_color || readableTextColor(settings.sidebar_color || bg));
   root.style.setProperty('--store-loader-bg', settings.loading_bg_color || bg);
   document.body.dataset.theme = settings.theme || 'minimal';
 }

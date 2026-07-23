@@ -127,3 +127,11 @@ Corre primero `PEGAR_EN_SUPABASE_OSKI_STORE_V3_3_VISUAL.sql` en Supabase.
 - Agrega color editable para texto/iconos de la barra lateral del catálogo público.
 - Corrige contraste cuando la barra lateral usa colores oscuros.
 - El color se aplica a categorías, logo en texto, redes sociales y encabezado móvil.
+
+
+## v3.6
+
+- Selector claro para **Fondo barra lateral** y **Texto / iconos barra lateral**.
+- Vista previa de contraste dentro de Tienda / Tema.
+- Botones rápidos: Texto blanco, Texto negro y Auto contraste.
+- El catálogo aplica el color de texto a categorías, redes, copyright, iconos y header móvil.
