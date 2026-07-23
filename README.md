@@ -135,3 +135,31 @@ Corre primero `PEGAR_EN_SUPABASE_OSKI_STORE_V3_3_VISUAL.sql` en Supabase.
 - Vista previa de contraste dentro de Tienda / Tema.
 - Botones rápidos: Texto blanco, Texto negro y Auto contraste.
 - El catálogo aplica el color de texto a categorías, redes, copyright, iconos y header móvil.
+
+
+## v4 — Membresía mensual manual
+
+- Un solo plan: **Mensual**.
+- Super Admin puede crear tiendas con mensualidad y fecha de vencimiento.
+- Super Admin puede renovar una tienda 1 mes, suspenderla, activarla o editar su membresía.
+- Se agrega bitácora `membership_payments` para registrar renovaciones manuales.
+- Las tiendas suspendidas dejan de estar disponibles en el catálogo público.
+
+SQL:
+`PEGAR_EN_SUPABASE_OSKI_STORE_V4_MEMBRESIA_MENSUAL.sql`
+
+Archivos principales actualizados:
+- `admin.js`
+- `styles.css`
+- `README.md`
+
+
+## V4 COMPLETO
+
+Este paquete incluye un solo SQL integrado:
+
+`PEGAR_EN_SUPABASE_OSKI_STORE_V4_COMPLETO.sql`
+
+Úsalo en Supabase SQL Editor para dejar la base con multi-tienda, tienda operativa, personalización visual y membresía mensual manual.
+
+El archivo `cloud-config.js` ya está configurado para el proyecto actual de Supabase usado durante el desarrollo. Si cambias de proyecto, actualiza `SUPABASE_URL` y `SUPABASE_ANON_KEY`.

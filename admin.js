@@ -89,6 +89,30 @@ function customerStats(customer) {
   return { orders: related.length, sold, balance, last: related[0]?.created_at || '' };
 }
 
+function storeBillingStatus(store) {
+  if (!store) return { key:'unknown', label:'Sin tienda', tone:'neutral', overdue:false, daysLeft:null };
+  if (store.status === 'suspended') return { key:'suspended', label:'Suspendida', tone:'danger', overdue:true, daysLeft:null };
+  if (store.status === 'archived') return { key:'archived', label:'Archivada', tone:'neutral', overdue:true, daysLeft:null };
+  const due = store.next_payment_due ? new Date(`${store.next_payment_due}T00:00:00`) : null;
+  if (!due) return { key:'no_due', label:'Sin vencimiento', tone:'warn', overdue:false, daysLeft:null };
+  const today = new Date(`${todayISO()}T00:00:00`);
+  const daysLeft = Math.ceil((due - today) / 86400000);
+  if (daysLeft < 0) return { key:'past_due', label:`Vencida hace ${Math.abs(daysLeft)} día${Math.abs(daysLeft)===1?'':'s'}`, tone:'danger', overdue:true, daysLeft };
+  if (daysLeft <= 5) return { key:'soon', label:`Vence en ${daysLeft} día${daysLeft===1?'':'s'}`, tone:'warn', overdue:false, daysLeft };
+  return { key:'active', label:`Activa · vence ${dateOnly(store.next_payment_due)}`, tone:'success', overdue:false, daysLeft };
+}
+function addMonthsISO(dateStr, months=1) {
+  const base = dateStr ? new Date(`${dateStr}T00:00:00`) : new Date(`${todayISO()}T00:00:00`);
+  const today = new Date(`${todayISO()}T00:00:00`);
+  const start = base > today ? base : today;
+  start.setMonth(start.getMonth() + months);
+  return start.toISOString().slice(0,10);
+}
+function membershipBadge(store) {
+  const st = storeBillingStatus(store);
+  return `<span class="badge membership-badge ${st.tone}">${escapeHTML(st.label)}</span>`;
+}
+
 async function checkSession() {
   const { data } = await supabase.auth.getUser();
   user = data.user;
@@ -165,7 +189,7 @@ function titleFor(view) {
     customers: ['CLIENTES', 'Clientes', 'Directorio, WhatsApp y cuentas por cobrar.'],
     orders: ['PEDIDOS', 'Pedidos', 'Productos vendidos, abonos, recibos y WhatsApp.'],
     settings: ['WHITE LABEL', 'Configuración de tienda', 'Logo, redes, diseño, colores y novedades.'],
-    super: ['MASTER', 'Super Admin', 'Crea tiendas, asigna usuarios y administra membresías.']
+    super: ['MASTER', 'Super Admin', 'Crea tiendas y controla membresías mensuales.']
   };
   return map[view] || map.dashboard;
 }
@@ -620,16 +644,119 @@ async function saveSettings() {
 }
 function renderSuper() {
   if (!isSuper) { $('#superView').innerHTML = '<div class="empty">Solo super usuario.</div>'; return; }
-  $('#superView').innerHTML = `<div class="panel-grid"><section class="panel-card"><h3>Crear tienda</h3><form id="createStoreForm" class="stack-form"><label>Nombre<input id="newStoreName" required placeholder="Tienda de Ana"></label><label>Slug<input id="newStoreSlug" placeholder="tienda-ana"></label><label>Email dueño<input id="newOwnerEmail" type="email" required placeholder="cliente@email.com"></label><label>Plan<select id="newPlan"><option>Básico</option><option>Pro</option><option>Full</option></select></label><button class="btn primary" type="submit">Crear tienda</button></form></section><section class="panel-card"><div class="panel-head"><h3>Tiendas</h3><span class="badge">${stores.length}</span></div><div class="cards-list">${stores.map(s=>`<article class="admin-card-row"><div class="grow"><b>${escapeHTML(s.name)}</b><span>${escapeHTML(s.slug)} · ${escapeHTML(s.owner_email||'sin dueño')} · ${escapeHTML(s.status)}</span></div><a class="btn ghost small" href="${storeUrl(s.slug)}" target="_blank">Catálogo</a><button class="btn ghost small" data-select-store="${s.id}">Admin</button></article>`).join('') || '<p class="muted">Sin tiendas.</p>'}</div></section></div>`;
+  const activeCount = stores.filter(s => s.status === 'active').length;
+  const suspendedCount = stores.filter(s => s.status === 'suspended').length;
+  const monthlyTotal = stores.filter(s => s.status === 'active').reduce((sum,s)=>sum+Number(s.monthly_fee || 0),0);
+  $('#superView').innerHTML = `
+    <div class="stats-grid membership-stats">
+      <article class="stat-card"><span>Tiendas activas</span><strong>${activeCount}</strong><small>Membresía mensual</small></article>
+      <article class="stat-card"><span>Suspendidas</span><strong>${suspendedCount}</strong><small>No visibles al público</small></article>
+      <article class="stat-card"><span>Mensualidad proyectada</span><strong>${money(monthlyTotal)}</strong><small>Si todas pagan este mes</small></article>
+    </div>
+    <div class="panel-grid">
+      <section class="panel-card">
+        <h3>Crear tienda</h3>
+        <form id="createStoreForm" class="stack-form">
+          <label>Nombre<input id="newStoreName" required placeholder="Tienda de Ana"></label>
+          <label>Slug<input id="newStoreSlug" placeholder="tienda-ana"></label>
+          <label>Email dueño<input id="newOwnerEmail" type="email" required placeholder="cliente@email.com"></label>
+          <div class="form-grid two">
+            <label>Mensualidad<input id="newMonthlyFee" type="number" min="0" step="1" value="299"></label>
+            <label>Primer vencimiento<input id="newDueDate" type="date" value="${addMonthsISO(todayISO(), 1)}"></label>
+          </div>
+          <p class="muted">Por ahora hay un solo plan: <b>Mensual</b>. Tú controlas manualmente pagos, vencimiento y suspensión.</p>
+          <button class="btn primary" type="submit">Crear tienda</button>
+        </form>
+      </section>
+      <section class="panel-card wide-card">
+        <div class="panel-head"><h3>Membresías / tiendas</h3><span class="badge">${stores.length}</span></div>
+        <div class="cards-list membership-list">
+          ${stores.map(s=>membershipStoreCard(s)).join('') || '<p class="muted">Sin tiendas.</p>'}
+        </div>
+      </section>
+    </div>`;
+}
+function membershipStoreCard(s) {
+  const billing = storeBillingStatus(s);
+  return `<article class="admin-card-row membership-row ${billing.tone}">
+    <div class="grow">
+      <b>${escapeHTML(s.name)}</b>
+      <span>${escapeHTML(s.slug)} · ${escapeHTML(s.owner_email || 'sin dueño')}</span>
+      <span>Plan ${escapeHTML(s.plan || 'Mensual')} · ${money(s.monthly_fee || 0)} / mes · vence: ${escapeHTML(dateOnly(s.next_payment_due) || 'sin fecha')}</span>
+      ${s.membership_notes ? `<span>Nota: ${escapeHTML(s.membership_notes)}</span>` : ''}
+    </div>
+    <div class="membership-actions">
+      ${membershipBadge(s)}
+      <button class="btn ghost small" data-renew-store="${s.id}" type="button">Renovar 1 mes</button>
+      <button class="btn ghost small" data-edit-membership="${s.id}" type="button">Editar</button>
+      ${s.status === 'suspended'
+        ? `<button class="btn ghost small" data-activate-store="${s.id}" type="button">Activar</button>`
+        : `<button class="btn danger small" data-suspend-store="${s.id}" type="button">Suspender</button>`}
+      <a class="btn ghost small" href="${storeUrl(s.slug)}" target="_blank">Catálogo</a>
+      <button class="btn ghost small" data-select-store="${s.id}" type="button">Admin</button>
+    </div>
+  </article>`;
+}
+function membershipForm(store) {
+  return `<form id="membershipForm" data-store-id="${store.id}" class="stack-form">
+    <div class="form-grid two">
+      <label>Nombre de tienda<input id="mStoreName" value="${escapeHTML(store.name || '')}" required></label>
+      <label>Slug<input id="mStoreSlug" value="${escapeHTML(store.slug || '')}" required></label>
+      <label>Email dueño<input id="mOwnerEmail" type="email" value="${escapeHTML(store.owner_email || '')}"></label>
+      <label>Mensualidad<input id="mMonthlyFee" type="number" min="0" step="1" value="${Number(store.monthly_fee || 0)}"></label>
+      <label>Estado<select id="mStatus"><option value="active" ${store.status==='active'?'selected':''}>Activa</option><option value="suspended" ${store.status==='suspended'?'selected':''}>Suspendida</option><option value="archived" ${store.status==='archived'?'selected':''}>Archivada</option></select></label>
+      <label>Vencimiento<input id="mDueDate" type="date" value="${escapeHTML(dateOnly(store.next_payment_due))}"></label>
+    </div>
+    <label>Notas internas<textarea id="mNotes" placeholder="Pago por transferencia, pendiente comprobante, etc.">${escapeHTML(store.membership_notes || '')}</textarea></label>
+    <button class="btn primary" type="submit">Guardar membresía</button>
+  </form>`;
+}
+async function saveMembershipFromForm(form) {
+  const id = form.dataset.storeId;
+  const row = {
+    name: $('#mStoreName').value.trim(),
+    slug: slugify($('#mStoreSlug').value.trim()),
+    owner_email: $('#mOwnerEmail').value.trim().toLowerCase(),
+    plan: 'Mensual',
+    monthly_fee: Number($('#mMonthlyFee').value || 0),
+    status: $('#mStatus').value,
+    next_payment_due: $('#mDueDate').value || null,
+    membership_notes: $('#mNotes').value.trim()
+  };
+  const { error } = await supabase.from('stores').update(row).eq('id', id);
+  if (error) throw error;
 }
 async function createStoreFromForm() {
   const name = $('#newStoreName').value.trim();
   const slug = slugify($('#newStoreSlug').value.trim() || name);
   const owner = $('#newOwnerEmail').value.trim().toLowerCase();
-  const { data: store, error } = await supabase.from('stores').insert({ name, slug, owner_email: owner, plan: $('#newPlan').value, status:'active' }).select().single();
+  const due = $('#newDueDate').value || addMonthsISO(todayISO(), 1);
+  const fee = Number($('#newMonthlyFee').value || 0);
+  const { data: store, error } = await supabase.from('stores').insert({ name, slug, owner_email: owner, plan: 'Mensual', monthly_fee: fee, status:'active', billing_status:'active', next_payment_due: due }).select().single();
   if (error) throw error;
   await supabase.from('store_settings').insert({ store_id: store.id, brand_name: name, theme:'minimal', primary_color:'#0b0b0d', bg_color:'#f8f7f3', text_color:'#111827', sidebar_color:'#fbfaf7', sidebar_text_color:'#111827', loading_bg_color:'#f8f7f3' });
   await supabase.from('store_members').insert({ store_id: store.id, email: owner, role:'owner', status:'active' });
+  await supabase.from('membership_payments').insert({ store_id: store.id, amount: 0, period_start: todayISO(), period_end: due, note: 'Tienda creada / periodo inicial' });
+}
+async function renewStore(storeId) {
+  const store = stores.find(s=>s.id===storeId);
+  if (!store) return;
+  const nextDue = addMonthsISO(store.next_payment_due || todayISO(), 1);
+  const amount = Number(store.monthly_fee || 0);
+  const { error } = await supabase.from('stores').update({ status:'active', billing_status:'active', next_payment_due: nextDue, last_payment_at: new Date().toISOString() }).eq('id', storeId);
+  if (error) throw error;
+  await supabase.from('membership_payments').insert({ store_id: storeId, amount, period_start: todayISO(), period_end: nextDue, note: 'Renovación mensual manual' });
+}
+async function suspendStore(storeId) {
+  if (!confirm('¿Suspender esta tienda? El catálogo público dejará de estar disponible.')) return;
+  const { error } = await supabase.from('stores').update({ status:'suspended', billing_status:'suspended' }).eq('id', storeId);
+  if (error) throw error;
+}
+async function activateStore(storeId) {
+  const store = stores.find(s=>s.id===storeId);
+  const due = store?.next_payment_due || addMonthsISO(todayISO(), 1);
+  const { error } = await supabase.from('stores').update({ status:'active', billing_status:'active', next_payment_due: due }).eq('id', storeId);
+  if (error) throw error;
 }
 async function reloadAll() { await loadStores(); await loadCurrentStoreData(); renderActiveView(); }
 
@@ -687,6 +814,14 @@ document.addEventListener('click', async (e)=>{
   if (e.target.closest('[data-remove-item]')) { e.target.closest('[data-order-item-row]')?.remove(); updateOrderLiveTotals(); }
   if (e.target.closest('[data-add-payment]')) { const box = $('#paymentsEdit'); if (box) { if (box.querySelector('.muted')) box.innerHTML = ''; box.insertAdjacentHTML('beforeend', paymentRowTemplate({amount:0, method:'Efectivo'})); updateOrderLiveTotals(); } }
   if (e.target.closest('[data-remove-payment]')) { e.target.closest('[data-payment-row]')?.remove(); updateOrderLiveTotals(); }
+  const renew = e.target.closest('[data-renew-store]')?.dataset.renewStore;
+  if (renew) { await renewStore(renew); await reloadAll(); showView('super'); }
+  const suspend = e.target.closest('[data-suspend-store]')?.dataset.suspendStore;
+  if (suspend) { await suspendStore(suspend); await reloadAll(); showView('super'); }
+  const activate = e.target.closest('[data-activate-store]')?.dataset.activateStore;
+  if (activate) { await activateStore(activate); await reloadAll(); showView('super'); }
+  const editMembership = e.target.closest('[data-edit-membership]')?.dataset.editMembership;
+  if (editMembership) { const s = stores.find(x=>x.id===editMembership); if (s) openModal('Editar membresía', membershipForm(s), true); }
   const ss = e.target.closest('[data-select-store]')?.dataset.selectStore;
   if (ss) { currentStore = stores.find(s=>s.id===ss); renderStoreSwitcher(); await loadCurrentStoreData(); showView('dashboard'); }
   if (e.target.closest('#resetThemeColors')) { const [p,b,t,side,sideText,loader] = themeColors[$('#sTheme').value] || themeColors.minimal; $('#sPrimary').value=p; $('#sBg').value=b; $('#sText').value=t; $('#sSidebar').value=side; $('#sSidebarTextColor').value=sideText; $('#sLoaderBg').value=loader; refreshColorLabels(); }
@@ -701,6 +836,7 @@ document.addEventListener('submit', async (e)=>{
     if (e.target.id === 'customerForm') { e.preventDefault(); await saveCustomerFromForm(); closeModal(); await reloadAll(); }
     if (e.target.id === 'orderForm') { e.preventDefault(); await saveOrderFromForm(); closeModal(); await reloadAll(); }
     if (e.target.id === 'settingsForm') { e.preventDefault(); await saveSettings(); await reloadAll(); alert('Tienda guardada.'); }
+    if (e.target.id === 'membershipForm') { e.preventDefault(); await saveMembershipFromForm(e.target); closeModal(); await reloadAll(); showView('super'); }
     if (e.target.id === 'createStoreForm') { e.preventDefault(); await createStoreFromForm(); await reloadAll(); showView('super'); }
   } catch (err) {
     alert(err.message || err);
