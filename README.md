@@ -67,3 +67,23 @@ v2:
 
 - Corrige rutas absolutas de CSS y JS para que `/t/:slug` cargue bien en Vercel.
 - El catálogo público ya no se queda sin estilos cuando se abre como `/t/tienda-prueba`.
+
+## v3 - Tienda operativa
+
+Esta versión agrega operación completa por tienda:
+
+- Pedidos con productos del pedido.
+- Abonos / pagos por pedido.
+- Recibo imprimible / PDF desde el navegador.
+- Envío de recibo por WhatsApp.
+- Cuentas por cobrar por cliente.
+- Conversión de pedidos web a pedidos internos.
+- Eliminación de pedidos internos con sus productos y pagos.
+
+### Supabase
+
+Ejecuta en SQL Editor:
+
+`PEGAR_EN_SUPABASE_OSKI_STORE_V3_OPERATIVA.sql`
+
+No borra datos. Solo agrega columnas e índices necesarios.
