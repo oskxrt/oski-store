@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tienda — OSKI Store</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="store-page">
+  <div id="storeLoader" class="page-loader"><div class="loader-mark"></div><p>Cargando tienda...</p></div>
+  <div id="storeApp" class="store-shell hidden">
+    <header class="store-mobile-head">
+      <button id="menuBtn" class="text-button">MENU</button>
+      <a id="mobileLogo" class="store-logo" href="#">STORE</a>
+      <button id="searchBtn" class="text-button">SEARCH</button>
+    </header>
+
+    <aside class="store-sidebar" id="storeSidebar">
+      <a class="store-logo" id="storeLogo" href="#">STORE</a>
+      <nav id="categoryNav" class="category-nav"></nav>
+      <div class="store-socials" id="socialLinks"></div>
+      <small id="storeCopyright">© Store</small>
+    </aside>
+
+    <main class="store-main">
+      <div class="store-bar">
+        <button id="filterBtn" class="text-button">FILTER</button>
+        <span id="activeCategory">SHOP ALL</span>
+        <div class="store-actions">
+          <input id="searchInput" type="search" placeholder="SEARCH" />
+          <a id="waLink" class="text-link" target="_blank" rel="noopener">WHATSAPP</a>
+          <button id="bagBtn" class="text-button">BAG</button>
+        </div>
+      </div>
+
+      <section id="newArrivals" class="new-arrivals hidden"></section>
+      <section id="catalogGrid" class="store-grid"></section>
+      <p id="catalogStatus" class="status"></p>
+    </main>
+  </div>
+
+  <dialog id="quickViewModal" class="modal quickview-modal">
+    <div class="modal-card quickview-card">
+      <div class="modal-head sticky-modal-head">
+        <h3>Vista rápida</h3>
+        <button class="icon-btn" id="quickClose" type="button">×</button>
+      </div>
+      <div id="quickViewContent"></div>
+    </div>
+  </dialog>
+
+  <script src="cloud-config.js"></script>
+  <script type="module" src="public-catalog.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/t/:slug", "destination": "/store.html?slug=:slug" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/super", "destination": "/admin.html?super=1" },
+    { "source": "/signup", "destination": "/signup.html" }
+  ]
+}
