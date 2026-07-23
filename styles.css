@@ -232,3 +232,55 @@ input[type="file"] { padding: 11px; background: #fff; }
   .design-settings-card .color-settings-grid { grid-template-columns: 1fr; }
   .loader-brand img { max-height: 94px; }
 }
+
+
+/* OSKI Store v3.5 - color de texto para barra lateral del catálogo */
+:root {
+  --store-sidebar-text: #111827;
+}
+.store-sidebar,
+.store-sidebar * {
+  color: var(--store-sidebar-text) !important;
+}
+.store-sidebar .store-logo,
+.store-sidebar .store-logo span,
+.store-sidebar .category-nav button,
+.store-sidebar .store-socials a,
+.store-sidebar #storeCopyright {
+  color: var(--store-sidebar-text) !important;
+}
+.store-sidebar .category-nav button,
+.store-sidebar .store-socials a {
+  opacity: .86;
+  transition: opacity .18s ease, transform .18s ease, text-decoration-color .18s ease;
+}
+.store-sidebar .category-nav button.active,
+.store-sidebar .category-nav button:hover,
+.store-sidebar .store-socials a:hover {
+  opacity: 1;
+  transform: translateX(2px);
+}
+.store-sidebar .social-icon-link svg {
+  color: var(--store-sidebar-text) !important;
+  stroke: currentColor !important;
+}
+.store-sidebar .social-icon-link svg * {
+  stroke: currentColor !important;
+}
+.store-sidebar .store-logo img {
+  filter: drop-shadow(0 12px 26px rgba(0,0,0,.16));
+}
+.store-mobile-head {
+  color: var(--store-sidebar-text) !important;
+}
+.store-mobile-head .store-logo,
+.store-mobile-head button,
+.store-mobile-head a {
+  color: var(--store-sidebar-text) !important;
+}
+.design-settings-card .color-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media(max-width:760px){
+  .design-settings-card .color-settings-grid { grid-template-columns: 1fr; }
+}

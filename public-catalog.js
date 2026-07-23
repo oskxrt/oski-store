@@ -28,6 +28,7 @@ function cssVars() {
   root.style.setProperty('--store-bg', bg);
   root.style.setProperty('--store-text', settings.text_color || '#111827');
   root.style.setProperty('--store-sidebar-bg', settings.sidebar_color || '#fbfaf7');
+  root.style.setProperty('--store-sidebar-text', settings.sidebar_text_color || settings.text_color || '#111827');
   root.style.setProperty('--store-loader-bg', settings.loading_bg_color || bg);
   document.body.dataset.theme = settings.theme || 'minimal';
 }

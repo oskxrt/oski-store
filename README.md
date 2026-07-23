@@ -120,3 +120,10 @@ Corre primero `PEGAR_EN_SUPABASE_OSKI_STORE_V3_3_VISUAL.sql` en Supabase.
 
 - Corrige que el color de la barra lateral del catálogo público se aplique realmente desde `store_settings.sidebar_color`.
 - Corrige que el fondo de pantalla de carga use `store_settings.loading_bg_color`.
+
+
+## v3.5
+
+- Agrega color editable para texto/iconos de la barra lateral del catálogo público.
+- Corrige contraste cuando la barra lateral usa colores oscuros.
+- El color se aplica a categorías, logo en texto, redes sociales y encabezado móvil.
