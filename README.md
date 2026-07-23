@@ -93,3 +93,15 @@ No borra datos. Solo agrega columnas e índices necesarios.
 
 - Corrección de impresión de recibos: ahora el botón **Imprimir / PDF** abre una vista limpia del recibo y manda a imprimir solo el comprobante.
 - Ajuste de tablas, totales y tamaños para evitar textos encimados al guardar como PDF.
+
+## v3.2 — Logo por archivo, colores e iconos sociales
+
+- La configuración de tienda ahora permite subir logo como archivo a Supabase Storage.
+- Se agregó el bucket público `store-assets` mediante SQL.
+- Se mejoró el selector de colores para que sea más claro y usable.
+- El catálogo público muestra iconos de Instagram, TikTok y Facebook en lugar de solo texto.
+- El logo del panel lateral también se actualiza cuando la tienda tiene logo.
+
+Para activar la subida de logo por archivo, ejecuta en Supabase:
+
+`PEGAR_EN_SUPABASE_OSKI_STORE_V3_2_LOGO_UPLOAD.sql`

@@ -32,6 +32,13 @@ function logoHTML() {
   const name = settings.brand_name || store.name;
   return settings.logo_url ? `<img src="${settings.logo_url}" alt="${escapeHTML(name)}">` : `<span>${escapeHTML(name)}</span>`;
 }
+function socialIcon(label) {
+  const key = normalize(label);
+  if (key.includes('instagram')) return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg>`;
+  if (key.includes('tiktok')) return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v11.2a4.2 4.2 0 1 1-4.2-4.2"></path><path d="M14 6.2c1.2 2.2 3 3.4 5 3.6"></path></svg>`;
+  if (key.includes('facebook')) return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3c-3 0-5 2-5 5v3H6v4h3v4h4v-4h3l1-4h-4V9c0-.6.4-1 1-1z"></path></svg>`;
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"></path></svg>`;
+}
 function variantList(p) { return [...(p.product_variants || [])].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)); }
 function imageList(p) { return [...(p.product_images || [])].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(i=>i.url).filter(Boolean); }
 function categories() { return [...new Set(products.map(p => p.category).filter(Boolean))].sort(); }
@@ -50,7 +57,7 @@ function renderShell() {
     ['TikTok', settings.tiktok_url],
     ['Facebook', settings.facebook_url]
   ].filter(x => x[1]);
-  $('#socialLinks').innerHTML = socials.map(([label,url]) => `<a href="${escapeHTML(url)}" target="_blank" rel="noopener">${label}</a>`).join('');
+  $('#socialLinks').innerHTML = socials.map(([label,url]) => `<a class="social-icon-link" href="${escapeHTML(url)}" target="_blank" rel="noopener" aria-label="${escapeHTML(label)}" title="${escapeHTML(label)}">${socialIcon(label)}<span>${escapeHTML(label)}</span></a>`).join('');
   renderCategories();
 }
 function renderCategories() {

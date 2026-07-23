@@ -38,6 +38,25 @@ function closeModal() {
   if ($('#modal').open) $('#modal').close();
   document.body.classList.remove('modal-open');
 }
+function storeInitial() { return (currentSettings?.brand_name || currentStore?.name || 'O').slice(0,1).toUpperCase(); }
+function updateStoreBrandUI() {
+  const logo = currentSettings?.logo_url;
+  const name = currentSettings?.brand_name || currentStore?.name || 'OSKI Store';
+  const mark = logo ? `<img src="${escapeHTML(logo)}" alt="Logo ${escapeHTML(name)}">` : escapeHTML(storeInitial());
+  const sideLogo = $('#sideLogo');
+  if (sideLogo) sideLogo.innerHTML = mark;
+  const sideTitle = $('#sideTitle');
+  if (sideTitle) sideTitle.textContent = name;
+}
+function colorSwatchLabel(id) { const el = $(id); return el ? String(el.value || '').toUpperCase() : ''; }
+function refreshColorLabels() {
+  [['#sPrimary','#sPrimaryText'],['#sBg','#sBgText'],['#sText','#sTextText']].forEach(([input,label]) => { if ($(label)) $(label).textContent = colorSwatchLabel(input); });
+}
+function logoPreviewHTML() {
+  const logo = currentSettings?.logo_url || '';
+  const name = currentSettings?.brand_name || currentStore?.name || 'Tienda';
+  return `<div class="logo-upload-box"><div class="logo-upload-preview" id="logoPreview">${logo ? `<img src="${escapeHTML(logo)}" alt="Logo ${escapeHTML(name)}">` : `<span>${escapeHTML(name.slice(0,1).toUpperCase())}</span>`}</div><div><b>Logo de tienda</b><small>Sube un archivo o pega una URL. Recomendado PNG/SVG con fondo transparente.</small></div></div>`;
+}
 function firstImage(p) { return (p.product_images || []).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))[0]?.url || ''; }
 function productStock(p) { return (p.product_variants || []).reduce((s,v)=>s+Number(v.stock||0),0); }
 function productById(id) { return products.find(p=>p.id===id); }
@@ -93,6 +112,7 @@ function renderStoreSwitcher() {
   if (currentStore) {
     localStorage.setItem('oski_current_store', currentStore.id);
     $('#sideTitle').textContent = currentStore.name;
+    $('#sideLogo').textContent = currentStore.name.slice(0,1).toUpperCase();
     $('#sideSubtitle').textContent = `${currentStore.slug} · ${isSuper ? 'Super admin' : 'Tienda'}`;
     $('#openCatalogLink').href = storeUrl(currentStore.slug);
   } else {
@@ -116,6 +136,7 @@ async function loadCurrentStoreData() {
   if (ordersRes.error) console.warn(ordersRes.error);
   if (catalogOrdersRes.error) console.warn(catalogOrdersRes.error);
   currentSettings = settingsRes.data || { store_id: currentStore.id, brand_name: currentStore.name, theme:'minimal', primary_color:'#0b0b0d', bg_color:'#f8f7f3', text_color:'#111827' };
+  updateStoreBrandUI();
   products = productsRes.data || [];
   customers = customersRes.data || [];
   orders = (ordersRes.data || []).map(o => ({...o, order_items: o.order_items || [], payments: o.payments || []}));
@@ -503,15 +524,63 @@ function whatsappOrder(id) {
 
 function renderSettings() {
   if (!currentStore) { $('#settingsView').innerHTML = emptyNoStore(); return; }
-  $('#settingsView').innerHTML = `<form id="settingsForm" class="settings-grid">
-    <section class="panel-card"><h3>Marca y redes</h3><label>Nombre de tienda<input id="sBrand" value="${escapeHTML(currentSettings.brand_name||currentStore.name)}"></label><label>Logo URL<input id="sLogo" value="${escapeHTML(currentSettings.logo_url||'')}" placeholder="https://..."></label><label>WhatsApp<input id="sWhatsapp" value="${escapeHTML(currentSettings.whatsapp||'')}"></label><label>Instagram<input id="sInstagram" value="${escapeHTML(currentSettings.instagram_url||'')}"></label><label>TikTok<input id="sTiktok" value="${escapeHTML(currentSettings.tiktok_url||'')}"></label><label>Facebook<input id="sFacebook" value="${escapeHTML(currentSettings.facebook_url||'')}"></label></section>
-    <section class="panel-card"><h3>Diseño</h3><label>Tema<select id="sTheme"><option value="minimal">Minimal Streetwear</option><option value="boutique">Boutique Clean</option><option value="drop">Drop Catalog</option><option value="market">Market Grid</option><option value="editorial">Editorial Simple</option></select></label><label>Color principal<input id="sPrimary" type="color" value="${escapeHTML(currentSettings.primary_color||'#0b0b0d')}"></label><label>Fondo<input id="sBg" type="color" value="${escapeHTML(currentSettings.bg_color||'#f8f7f3')}"></label><label>Texto<input id="sText" type="color" value="${escapeHTML(currentSettings.text_color||'#111827')}"></label><label class="check"><input id="sNews" type="checkbox" ${currentSettings.show_new_arrivals?'checked':''}> Mostrar novedades</label><label>Título novedades<input id="sNewsTitle" value="${escapeHTML(currentSettings.new_arrivals_title||'Novedades')}"></label><div class="modal-actions"><button class="btn ghost" id="resetThemeColors" type="button">Restablecer colores</button><button class="btn primary" type="submit">Guardar tienda</button></div></section>
+  $('#settingsView').innerHTML = `<form id="settingsForm" class="settings-grid settings-grid-polished">
+    <section class="panel-card brand-settings-card">
+      <h3>Marca y redes</h3>
+      <label>Nombre de tienda<input id="sBrand" value="${escapeHTML(currentSettings.brand_name||currentStore.name)}"></label>
+      <div class="logo-section">
+        ${logoPreviewHTML()}
+        <label>Logo URL<input id="sLogo" value="${escapeHTML(currentSettings.logo_url||'')}" placeholder="https://..."></label>
+        <label>Subir logo<input id="sLogoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label>
+      </div>
+      <label>WhatsApp<input id="sWhatsapp" value="${escapeHTML(currentSettings.whatsapp||'')}" placeholder="523112345678"></label>
+      <label>Instagram<input id="sInstagram" value="${escapeHTML(currentSettings.instagram_url||'')}" placeholder="https://instagram.com/tu_tienda"></label>
+      <label>TikTok<input id="sTiktok" value="${escapeHTML(currentSettings.tiktok_url||'')}" placeholder="https://tiktok.com/@tu_tienda"></label>
+      <label>Facebook<input id="sFacebook" value="${escapeHTML(currentSettings.facebook_url||'')}" placeholder="https://facebook.com/tu_tienda"></label>
+    </section>
+    <section class="panel-card design-settings-card">
+      <h3>Diseño</h3>
+      <label>Tema<select id="sTheme"><option value="minimal">Minimal Streetwear</option><option value="boutique">Boutique Clean</option><option value="drop">Drop Catalog</option><option value="market">Market Grid</option><option value="editorial">Editorial Simple</option></select></label>
+      <div class="color-settings-grid">
+        <label class="color-field"><span>Color principal</span><div class="color-input-wrap"><input id="sPrimary" type="color" value="${escapeHTML(currentSettings.primary_color||'#0b0b0d')}"><code id="sPrimaryText">${escapeHTML((currentSettings.primary_color||'#0b0b0d').toUpperCase())}</code></div></label>
+        <label class="color-field"><span>Fondo</span><div class="color-input-wrap"><input id="sBg" type="color" value="${escapeHTML(currentSettings.bg_color||'#f8f7f3')}"><code id="sBgText">${escapeHTML((currentSettings.bg_color||'#f8f7f3').toUpperCase())}</code></div></label>
+        <label class="color-field"><span>Texto</span><div class="color-input-wrap"><input id="sText" type="color" value="${escapeHTML(currentSettings.text_color||'#111827')}"><code id="sTextText">${escapeHTML((currentSettings.text_color||'#111827').toUpperCase())}</code></div></label>
+      </div>
+      <label class="check"><input id="sNews" type="checkbox" ${currentSettings.show_new_arrivals?'checked':''}> Mostrar novedades</label>
+      <label>Título novedades<input id="sNewsTitle" value="${escapeHTML(currentSettings.new_arrivals_title||'Novedades')}"></label>
+      <div class="theme-preview-card" id="themePreviewCard"><span>Vista previa</span><b>${escapeHTML(currentSettings.brand_name||currentStore.name)}</b><small>Producto · ${money(600)}</small></div>
+      <div class="modal-actions"><button class="btn ghost" id="resetThemeColors" type="button">Restablecer colores</button><button class="btn primary" type="submit">Guardar tienda</button></div>
+    </section>
   </form>`;
   $('#sTheme').value = currentSettings.theme || 'minimal';
+  refreshColorLabels();
+  previewLogoFile();
 }
 const themeColors = { minimal:['#0b0b0d','#f8f7f3','#111827'], boutique:['#6f4e37','#fffaf3','#2b211a'], drop:['#111827','#ffffff','#111827'], market:['#0f766e','#f3faf8','#10201d'], editorial:['#7c2d12','#f7f1ea','#1f1712'] };
+function previewLogoFile() {
+  const fileInput = $('#sLogoFile');
+  if (!fileInput) return;
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const preview = $('#logoPreview');
+    if (preview) preview.innerHTML = `<img src="${url}" alt="Logo preview">`;
+  });
+}
+async function uploadLogoIfNeeded() {
+  const file = $('#sLogoFile')?.files?.[0];
+  if (!file) return $('#sLogo').value.trim();
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g,'') || 'png';
+  const path = `${currentStore.id}/logos/logo-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('store-assets').upload(path, file, { cacheControl: '3600', upsert: true, contentType: file.type || undefined });
+  if (error) throw new Error(`No se pudo subir el logo: ${error.message}. Asegúrate de correr el SQL v3.2 para crear el bucket store-assets.`);
+  const { data } = supabase.storage.from('store-assets').getPublicUrl(path);
+  return data.publicUrl;
+}
 async function saveSettings() {
-  const row = { store_id: currentStore.id, brand_name: $('#sBrand').value.trim(), logo_url: $('#sLogo').value.trim(), whatsapp: $('#sWhatsapp').value.trim(), instagram_url: $('#sInstagram').value.trim(), tiktok_url: $('#sTiktok').value.trim(), facebook_url: $('#sFacebook').value.trim(), theme: $('#sTheme').value, primary_color: $('#sPrimary').value, bg_color: $('#sBg').value, text_color: $('#sText').value, show_new_arrivals: $('#sNews').checked, new_arrivals_title: $('#sNewsTitle').value.trim() || 'Novedades' };
+  const logoUrl = await uploadLogoIfNeeded();
+  const row = { store_id: currentStore.id, brand_name: $('#sBrand').value.trim(), logo_url: logoUrl, whatsapp: $('#sWhatsapp').value.trim(), instagram_url: $('#sInstagram').value.trim(), tiktok_url: $('#sTiktok').value.trim(), facebook_url: $('#sFacebook').value.trim(), theme: $('#sTheme').value, primary_color: $('#sPrimary').value, bg_color: $('#sBg').value, text_color: $('#sText').value, show_new_arrivals: $('#sNews').checked, new_arrivals_title: $('#sNewsTitle').value.trim() || 'Novedades' };
   const { error } = await supabase.from('store_settings').upsert(row, { onConflict:'store_id' });
   if (error) throw error;
 }
@@ -547,6 +616,7 @@ $('#modal').addEventListener('click', (e)=>{ if (e.target === $('#modal')) close
 document.addEventListener('input', (e)=>{
   if (e.target.closest('#orderForm')) updateOrderLiveTotals();
   if (e.target.id === 'oCustomerName') fillCustomerFromName();
+  if (['sPrimary','sBg','sText'].includes(e.target.id)) refreshColorLabels();
 });
 document.addEventListener('change', (e)=>{
   const row = e.target.closest('[data-order-item-row]');
@@ -585,7 +655,7 @@ document.addEventListener('click', async (e)=>{
   if (e.target.closest('[data-remove-payment]')) { e.target.closest('[data-payment-row]')?.remove(); updateOrderLiveTotals(); }
   const ss = e.target.closest('[data-select-store]')?.dataset.selectStore;
   if (ss) { currentStore = stores.find(s=>s.id===ss); renderStoreSwitcher(); await loadCurrentStoreData(); showView('dashboard'); }
-  if (e.target.closest('#resetThemeColors')) { const [p,b,t] = themeColors[$('#sTheme').value] || themeColors.minimal; $('#sPrimary').value=p; $('#sBg').value=b; $('#sText').value=t; }
+  if (e.target.closest('#resetThemeColors')) { const [p,b,t] = themeColors[$('#sTheme').value] || themeColors.minimal; $('#sPrimary').value=p; $('#sBg').value=b; $('#sText').value=t; refreshColorLabels(); }
 });
 
 document.addEventListener('submit', async (e)=>{
