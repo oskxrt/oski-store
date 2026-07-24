@@ -193,15 +193,29 @@ function membershipBadge(store) {
 }
 
 async function checkSession() {
-  const { data } = await supabase.auth.getUser();
-  user = data.user;
-  if (!user) { $('#loginView').classList.remove('hidden'); $('#appView').classList.add('hidden'); return; }
-  $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
-  $('#currentUserBox').innerHTML = `<b>${escapeHTML(user.email)}</b><br><span>Conectado</span>`;
-  await bootstrap();
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) console.warn('Auth getUser:', error.message);
+    user = data?.user || null;
+    if (!user) {
+      $('#loginView').classList.remove('hidden');
+      $('#appView').classList.add('hidden');
+      return;
+    }
+    $('#loginView').classList.add('hidden');
+    $('#appView').classList.remove('hidden');
+    $('#currentUserBox').innerHTML = `<b>${escapeHTML(user.email)}</b><br><span>Conectado</span>`;
+    await bootstrap();
+  } catch (err) {
+    console.error('Error al iniciar sesión:', err);
+    $('#loginView').classList.remove('hidden');
+    $('#appView').classList.add('hidden');
+    setStatus('#loginStatus', err.message || 'No se pudo iniciar sesión. Revisa la configuración de Supabase.');
+  }
 }
 async function bootstrap() {
-  const { data: superData } = await supabase.rpc('is_platform_admin');
+  const { data: superData, error: superError } = await supabase.rpc('is_platform_admin');
+  if (superError) console.warn('is_platform_admin:', superError.message);
   isSuper = !!superData;
   $('#superNavBtn').classList.toggle('hidden', !isSuper);
   await loadStores();
@@ -978,10 +992,16 @@ async function reloadAll() { await loadStores(); await loadMembershipPayments();
 $('#loginForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   setStatus('#loginStatus','Entrando...');
-  const { error } = await supabase.auth.signInWithPassword({ email: $('#loginEmail').value.trim().toLowerCase(), password: $('#loginPassword').value });
-  if (error) { setStatus('#loginStatus', error.message); return; }
-  setStatus('#loginStatus','');
-  await checkSession();
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email: $('#loginEmail').value.trim().toLowerCase(), password: $('#loginPassword').value });
+    if (error) { setStatus('#loginStatus', error.message); return; }
+    setStatus('#loginStatus','Cargando panel...');
+    await checkSession();
+    setStatus('#loginStatus','');
+  } catch (err) {
+    console.error(err);
+    setStatus('#loginStatus', err.message || 'No se pudo entrar.');
+  }
 });
 $('#logoutBtn').addEventListener('click', async ()=>{ await supabase.auth.signOut(); location.reload(); });
 $('#refreshBtn').addEventListener('click', reloadAll);
@@ -1073,5 +1093,7 @@ document.addEventListener('submit', async (e)=>{
   }
 });
 
-supabase.auth.onAuthStateChange(() => checkSession());
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') location.reload();
+});
 checkSession();
