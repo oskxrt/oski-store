@@ -171,3 +171,15 @@ El archivo `cloud-config.js` ya está configurado para el proyecto actual de Sup
 - Cada tienda se abre con acordeón para ver detalle completo.
 - La vista principal muestra solo nombre, estado, vencimiento y mensualidad.
 - Acciones avanzadas quedan dentro del detalle: renovar, historial, editar, copiar link, catálogo, entrar al admin y suspender.
+
+## v4.3 — Flujo de alta de tienda / usuario
+
+- El alta de tienda ahora abre una ventana más guiada.
+- Después de crear una tienda se muestra una ventana con instrucciones para el dueño.
+- Se puede copiar:
+  - link de signup
+  - link del admin
+  - link del catálogo
+  - mensaje completo para WhatsApp/correo
+- En cada tienda del Super Admin se agregó botón **Instrucciones** y **Copiar signup**.
+- Mantiene el Super Admin limpio con lista compacta y acordeón.

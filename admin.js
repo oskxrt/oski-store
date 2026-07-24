@@ -25,6 +25,8 @@ let superStatusFilter = 'all';
 
 function setStatus(sel, text) { const el = $(sel); if (el) el.textContent = text || ''; }
 function storeUrl(slug=currentStore?.slug) { return `${location.origin}/t/${slug}`; }
+function signupUrl(email='') { return `${location.origin}/signup${email ? `?email=${encodeURIComponent(email)}` : ''}`; }
+function adminUrl() { return `${location.origin}/admin`; }
 function currentStoreId() { return currentStore?.id; }
 function todayISO() { return new Date().toISOString().slice(0,10); }
 function nowLocalText(dateValue=new Date()) { return new Date(dateValue).toLocaleString('es-MX', { dateStyle:'medium', timeStyle:'short' }); }
@@ -121,6 +123,51 @@ async function copyToClipboard(text, successMessage='Copiado al portapapeles') {
   }
 }
 
+
+function onboardingText(store) {
+  const owner = store?.owner_email || '';
+  return [
+    `Hola, ya quedó creada tu tienda en OSKI Store.`,
+    '',
+    `1. Crea tu cuenta con este correo: ${owner || 'tu correo asignado'}`,
+    signupUrl(owner),
+    '',
+    '2. Cuando termines, entra al panel:',
+    adminUrl(),
+    '',
+    '3. Tu catálogo público estará aquí:',
+    storeUrl(store?.slug || ''),
+    '',
+    'Desde el panel podrás subir productos, clientes, pedidos y personalizar tu tienda.'
+  ].join('
+');
+}
+function onboardingModal(store) {
+  const owner = store?.owner_email || '';
+  return `<div class="onboarding-modal">
+    <div class="onboarding-hero">
+      <div class="super-store-mark large">${escapeHTML((store?.name || 'T').slice(0,2).toUpperCase())}</div>
+      <div><span class="eyebrow">TIENDA CREADA</span><h2>${escapeHTML(store?.name || 'Nueva tienda')}</h2><p class="muted">Comparte estas instrucciones con el dueño para que cree su cuenta y entre a su panel.</p></div>
+    </div>
+    <div class="onboarding-steps">
+      <article><span>1</span><div><b>Crear cuenta</b><p>El dueño debe registrarse con el correo asignado.</p><code>${escapeHTML(owner || 'correo del dueño')}</code></div></article>
+      <article><span>2</span><div><b>Entrar al panel</b><p>Después del registro, entra a /admin y verá únicamente su tienda.</p><code>${escapeHTML(adminUrl())}</code></div></article>
+      <article><span>3</span><div><b>Compartir catálogo</b><p>Este es el link público de la tienda.</p><code>${escapeHTML(storeUrl(store?.slug || ''))}</code></div></article>
+    </div>
+    <textarea class="copy-message-box" readonly>${escapeHTML(onboardingText(store))}</textarea>
+    <div class="modal-actions onboarding-actions">
+      <button class="btn ghost" type="button" data-copy-signup="${escapeHTML(owner)}">Copiar signup</button>
+      <button class="btn ghost" type="button" data-copy-catalog="${escapeHTML(store?.slug || '')}">Copiar catálogo</button>
+      <button class="btn ghost" type="button" data-copy-admin-link>Copiar admin</button>
+      <button class="btn primary" type="button" data-copy-onboarding="${escapeHTML(store?.id || '')}">Copiar mensaje completo</button>
+    </div>
+  </div>`;
+}
+function openOnboardingModal(storeId) {
+  const store = stores.find(s => s.id === storeId);
+  if (!store) return;
+  openModal('Instrucciones para el dueño', onboardingModal(store), true);
+}
 function storeBillingStatus(store) {
   if (!store) return { key:'unknown', label:'Sin tienda', tone:'neutral', overdue:false, daysLeft:null };
   if (store.status === 'suspended') return { key:'suspended', label:'Suspendida', tone:'danger', overdue:true, daysLeft:null };
@@ -706,15 +753,25 @@ function upcomingStoresMiniList() {
   }).join('')}</div>`;
 }
 function createStoreFormHTML() {
-  return `<form id="createStoreForm" class="modal-form two-col">
-    <label>Nombre<input id="newStoreName" required placeholder="Tienda de Ana"></label>
-    <label>Slug<input id="newStoreSlug" placeholder="tienda-ana"></label>
-    <label>Email dueño<input id="newOwnerEmail" type="email" required placeholder="cliente@email.com"></label>
+  return `<form id="createStoreForm" class="modal-form two-col create-store-flow">
+    <div class="wide create-flow-head">
+      <span class="eyebrow">ALTA DE TIENDA</span>
+      <h3>Crear tienda nueva</h3>
+      <p class="muted">Solo necesitas los datos básicos. Después OSKI Store te dará los links para que el dueño cree su cuenta y empiece a usar su panel.</p>
+    </div>
+    <label>Nombre de tienda<input id="newStoreName" required placeholder="Tienda de Ana"></label>
+    <label>Slug público<input id="newStoreSlug" placeholder="tienda-ana"></label>
+    <label class="wide">Email del dueño<input id="newOwnerEmail" type="email" required placeholder="cliente@email.com"></label>
     <label>Mensualidad<input id="newMonthlyFee" type="number" min="0" step="1" value="299"></label>
     <label>Primer vencimiento<input id="newDueDate" type="date" value="${addMonthsISO(todayISO(), 1)}"></label>
-    <label class="wide">Notas internas<textarea id="newMembershipNotes" placeholder="Opcional: referencia del pago, observaciones, etc."></textarea></label>
-    <div class="wide modal-inline-note"><b>Plan actual:</b> Mensual. Después podrás renovarla, suspenderla o editarla desde la lista de tiendas.</div>
-    <div class="wide modal-actions"><button class="btn ghost" type="button" data-close-modal>Cancelar</button><button class="btn primary" type="submit">Crear tienda</button></div>
+    <label class="wide">Notas internas<textarea id="newMembershipNotes" placeholder="Opcional: pago inicial, referencia, acuerdo con cliente, etc."></textarea></label>
+    <div class="wide onboarding-preview-box">
+      <b>Después de crearla podrás copiar:</b>
+      <div><span>Signup</span><code>${escapeHTML(signupUrl())}</code></div>
+      <div><span>Admin</span><code>${escapeHTML(adminUrl())}</code></div>
+      <div><span>Catálogo</span><code>${escapeHTML(`${location.origin}/t/slug-de-tienda`)}</code></div>
+    </div>
+    <div class="wide modal-actions"><button class="btn ghost" type="button" data-close-modal>Cancelar</button><button class="btn primary" type="submit">Crear tienda y generar links</button></div>
   </form>`;
 }
 function renderSuper() {
@@ -742,8 +799,8 @@ function renderSuper() {
           <b>Checklist rápido</b>
           <ul>
             <li>Crear tienda con nombre, slug y correo del dueño.</li>
+            <li>Copiar signup, catálogo y mensaje para el cliente.</li>
             <li>Renovar mensualidad en un clic.</li>
-            <li>Copiar link del catálogo o entrar al admin.</li>
             <li>Ver historial de pagos de membresía.</li>
           </ul>
         </div>
@@ -822,7 +879,9 @@ function membershipStoreCard(s) {
         <button class="btn ghost small" data-renew-store="${s.id}" type="button">Renovar 1 mes</button>
         <button class="btn ghost small" data-membership-history="${s.id}" type="button">Historial</button>
         <button class="btn ghost small" data-edit-membership="${s.id}" type="button">Editar</button>
-        <button class="btn ghost small" data-copy-catalog="${s.slug}" type="button">Copiar link</button>
+        <button class="btn ghost small" data-onboard-store="${s.id}" type="button">Instrucciones</button>
+        <button class="btn ghost small" data-copy-signup="${escapeHTML(s.owner_email || '')}" type="button">Copiar signup</button>
+        <button class="btn ghost small" data-copy-catalog="${s.slug}" type="button">Copiar catálogo</button>
         <a class="btn ghost small" href="${storeUrl(s.slug)}" target="_blank">Catálogo</a>
         <button class="btn ghost small" data-select-store="${s.id}" type="button">Entrar al admin</button>
         ${s.status === 'suspended'
@@ -886,13 +945,13 @@ async function createStoreFromForm() {
   const owner = $('#newOwnerEmail').value.trim().toLowerCase();
   const due = $('#newDueDate').value || addMonthsISO(todayISO(), 1);
   const fee = Number($('#newMonthlyFee').value || 0);
-  const { data: store, error } = await supabase.from('stores').insert({ name, slug, owner_email: owner, plan: 'Mensual', monthly_fee: fee, status:'active', billing_status:'active', next_payment_due: due }).select().single();
+  const notes = $('#newMembershipNotes')?.value?.trim() || '';
+  const { data: store, error } = await supabase.from('stores').insert({ name, slug, owner_email: owner, plan: 'Mensual', monthly_fee: fee, status:'active', billing_status:'active', next_payment_due: due, membership_notes: notes }).select().single();
   if (error) throw error;
   await supabase.from('store_settings').insert({ store_id: store.id, brand_name: name, theme:'minimal', primary_color:'#0b0b0d', bg_color:'#f8f7f3', text_color:'#111827', sidebar_color:'#fbfaf7', sidebar_text_color:'#111827', loading_bg_color:'#f8f7f3' });
   await supabase.from('store_members').insert({ store_id: store.id, email: owner, role:'owner', status:'active' });
   await supabase.from('membership_payments').insert({ store_id: store.id, amount: 0, period_start: todayISO(), period_end: due, note: 'Tienda creada / periodo inicial' });
-  const notes = $('#newMembershipNotes')?.value?.trim();
-  if (notes) await supabase.from('stores').update({ membership_notes: notes }).eq('id', store.id);
+  return store;
 }
 async function renewStore(storeId) {
   const store = stores.find(s=>s.id===storeId);
@@ -982,8 +1041,15 @@ document.addEventListener('click', async (e)=>{
   if (editMembership) { const s = stores.find(x=>x.id===editMembership); if (s) openModal('Editar membresía', membershipForm(s), true); }
   const membershipHistory = e.target.closest('[data-membership-history]')?.dataset.membershipHistory;
   if (membershipHistory) { openModal('Historial de membresía', membershipHistoryModal(membershipHistory), true); }
+  const onboardStore = e.target.closest('[data-onboard-store]')?.dataset.onboardStore;
+  if (onboardStore) openOnboardingModal(onboardStore);
+  const copySignup = e.target.closest('[data-copy-signup]')?.dataset.copySignup;
+  if (copySignup !== undefined) { await copyToClipboard(signupUrl(copySignup), 'Link de signup copiado'); }
+  if (e.target.closest('[data-copy-admin-link]')) { await copyToClipboard(adminUrl(), 'Link de admin copiado'); }
   const copyCatalog = e.target.closest('[data-copy-catalog]')?.dataset.copyCatalog;
   if (copyCatalog) { await copyToClipboard(storeUrl(copyCatalog), 'Link del catálogo copiado'); }
+  const copyOnboarding = e.target.closest('[data-copy-onboarding]')?.dataset.copyOnboarding;
+  if (copyOnboarding) { const s = stores.find(x=>x.id===copyOnboarding); if (s) await copyToClipboard(onboardingText(s), 'Mensaje completo copiado'); }
   const ss = e.target.closest('[data-select-store]')?.dataset.selectStore;
   if (ss) { currentStore = stores.find(s=>s.id===ss); renderStoreSwitcher(); await loadCurrentStoreData(); showView('dashboard'); }
   if (e.target.closest('#resetThemeColors')) { const [p,b,t,side,sideText,loader] = themeColors[$('#sTheme').value] || themeColors.minimal; $('#sPrimary').value=p; $('#sBg').value=b; $('#sText').value=t; $('#sSidebar').value=side; $('#sSidebarTextColor').value=sideText; $('#sLoaderBg').value=loader; refreshColorLabels(); }
@@ -1001,7 +1067,7 @@ document.addEventListener('submit', async (e)=>{
     if (e.target.id === 'orderForm') { e.preventDefault(); await saveOrderFromForm(); closeModal(); await reloadAll(); }
     if (e.target.id === 'settingsForm') { e.preventDefault(); await saveSettings(); await reloadAll(); alert('Tienda guardada.'); }
     if (e.target.id === 'membershipForm') { e.preventDefault(); await saveMembershipFromForm(e.target); closeModal(); await reloadAll(); showView('super'); }
-    if (e.target.id === 'createStoreForm') { e.preventDefault(); await createStoreFromForm(); closeModal(); await reloadAll(); showView('super'); }
+    if (e.target.id === 'createStoreForm') { e.preventDefault(); const createdStore = await createStoreFromForm(); closeModal(); await reloadAll(); showView('super'); if (createdStore?.id) openOnboardingModal(createdStore.id); }
   } catch (err) {
     alert(err.message || err);
   }
