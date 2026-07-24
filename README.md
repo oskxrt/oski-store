@@ -210,3 +210,10 @@ No requiere cambios nuevos en Supabase si ya estás usando la base v4 completa.
 - Se mantiene el loader visible un momento para que el branding se alcance a ver.
 - El menú lateral del catálogo en móvil tiene overlay y cierre más natural.
 - La vista rápida en móvil baja un poco el tamaño máximo de imagen para que respire mejor dentro del cuadro.
+
+## v4.7 — Ajustes móvil, loader y producto
+
+- Clientes en móvil más compactos y con botones acomodados.
+- Loader del catálogo sin marca OSKI genérica: solo aparece el logo/nombre real de la tienda con barra de carga.
+- Producto en catálogo móvil más grande.
+- Vista rápida con imagen más grande, centrada y sin recorte.

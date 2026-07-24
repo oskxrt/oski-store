@@ -383,7 +383,7 @@ function customerRow(c) {
   const initial = (c.name||'?').slice(0,1).toUpperCase();
   const stats = customerStats(c);
   const phoneLink = cleanPhone(c.phone);
-  return `<article class="admin-card-row customer-admin-row"><div class="avatar">${escapeHTML(initial)}</div><div class="grow"><b>${escapeHTML(c.name)}</b><span>${escapeHTML(c.phone||'Sin teléfono')} · ${escapeHTML(c.instagram||'Sin red')}</span><small>${stats.orders} pedido(s) · ${money(stats.sold)} vendido · saldo ${money(stats.balance)}</small></div>${phoneLink?`<a class="btn ghost small" href="https://wa.me/${phoneLink}" target="_blank">WhatsApp</a>`:''}<button class="btn ghost small" data-new-order-customer="${c.id}">Pedido</button><button class="btn ghost small" data-edit-customer="${c.id}">Editar</button></article>`;
+  return `<article class="admin-card-row customer-admin-row"><div class="avatar">${escapeHTML(initial)}</div><div class="grow"><b>${escapeHTML(c.name)}</b><span>${escapeHTML(c.phone||'Sin teléfono')} · ${escapeHTML(c.instagram||'Sin red')}</span><small>${stats.orders} pedido(s) · ${money(stats.sold)} vendido · saldo ${money(stats.balance)}</small></div><div class="customer-actions">${phoneLink?`<a class="btn ghost small" href="https://wa.me/${phoneLink}" target="_blank">WhatsApp</a>`:''}<button class="btn ghost small" data-new-order-customer="${c.id}">Pedido</button><button class="btn ghost small" data-edit-customer="${c.id}">Editar</button></div></article>`;
 }
 function customerForm(c={}) {
   return `<form id="customerForm" class="modal-form two-col">

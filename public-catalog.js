@@ -50,7 +50,7 @@ function renderLoaderBrand() {
   if (!loader || !store) return;
   const name = settings.brand_name || store.name || 'Store';
   const mark = settings.logo_url ? `<img src="${settings.logo_url}" alt="${escapeHTML(name)}">` : `<span>${escapeHTML(name)}</span>`;
-  loader.innerHTML = `<div class="loader-brand">${mark}</div><div class="loader-progress" aria-hidden="true"><span></span></div><p>Cargando ${escapeHTML(name)}...</p>`;
+  loader.innerHTML = `<div class="loader-brand">${mark}</div><div class="loader-progress" aria-hidden="true"><span></span></div>`;
   loader.classList.add('loader-branded');
 }
 function socialIcon(label) {
@@ -182,7 +182,7 @@ async function loadStore() {
     products = data || [];
     renderShell();
     renderCatalog();
-    await sleep(650);
+    await sleep(1150);
     $('#storeLoader').classList.add('hidden');
     $('#storeApp').classList.remove('hidden');
   } catch (err) {
