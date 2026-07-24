@@ -769,7 +769,7 @@ function renderSuper() {
           </div>
         </div>
         <div class="panel-head compact"><h4>Tiendas encontradas</h4><span class="badge" id="superStoreCount">0</span></div>
-        <div id="superStoreList" class="super-store-grid"></div>
+        <div id="superStoreList" class="super-store-list"></div>
       </section>
     </div>`;
   renderSuperStoreList();
@@ -787,39 +787,50 @@ function membershipStoreCard(s) {
   const payment = latestMembershipPayment(s.id);
   const initials = (s.name || 'T').trim().slice(0,2).toUpperCase();
   const lastPaid = payment ? `${money(payment.amount || 0)} · ${dateOnly(payment.paid_at || payment.created_at)}` : 'Sin pagos registrados';
-  return `<article class="super-store-card ${billing.tone}">
-    <div class="super-store-top">
-      <div class="super-store-ident">
+  const dueText = dateOnly(s.next_payment_due) || 'Sin fecha';
+  return `<details class="super-compact-store ${billing.tone}">
+    <summary class="super-compact-summary">
+      <div class="super-compact-main">
         <div class="super-store-mark">${escapeHTML(initials)}</div>
-        <div>
+        <div class="super-compact-title">
           <h4>${escapeHTML(s.name)}</h4>
           <p>/t/${escapeHTML(s.slug)}</p>
         </div>
       </div>
-      <div class="super-store-badges">
+      <div class="super-compact-status">
         ${membershipBadge(s)}
-        <span class="badge soft">${escapeHTML(s.plan || 'Mensual')}</span>
+      </div>
+      <div class="super-compact-info">
+        <span>Vence</span>
+        <b>${escapeHTML(dueText)}</b>
+      </div>
+      <div class="super-compact-info">
+        <span>Mensualidad</span>
+        <b>${money(s.monthly_fee || 0)}</b>
+      </div>
+      <div class="super-compact-chevron" aria-hidden="true">⌄</div>
+    </summary>
+    <div class="super-compact-detail">
+      <div class="super-detail-grid">
+        <div><span>Dueño</span><b>${escapeHTML(s.owner_email || 'sin dueño')}</b></div>
+        <div><span>Plan</span><b>${escapeHTML(s.plan || 'Mensual')}</b></div>
+        <div><span>Último pago</span><b>${escapeHTML(lastPaid)}</b></div>
+        <div><span>Estado interno</span><b>${escapeHTML(s.status || 'active')}</b></div>
+      </div>
+      ${s.membership_notes ? `<div class="super-store-note compact"><span>Nota interna</span><p>${escapeHTML(s.membership_notes)}</p></div>` : ''}
+      <div class="super-compact-actions">
+        <button class="btn ghost small" data-renew-store="${s.id}" type="button">Renovar 1 mes</button>
+        <button class="btn ghost small" data-membership-history="${s.id}" type="button">Historial</button>
+        <button class="btn ghost small" data-edit-membership="${s.id}" type="button">Editar</button>
+        <button class="btn ghost small" data-copy-catalog="${s.slug}" type="button">Copiar link</button>
+        <a class="btn ghost small" href="${storeUrl(s.slug)}" target="_blank">Catálogo</a>
+        <button class="btn ghost small" data-select-store="${s.id}" type="button">Entrar al admin</button>
+        ${s.status === 'suspended'
+          ? `<button class="btn primary small" data-activate-store="${s.id}" type="button">Activar</button>`
+          : `<button class="btn danger small" data-suspend-store="${s.id}" type="button">Suspender</button>`}
       </div>
     </div>
-    <div class="super-store-meta">
-      <div><span>Dueño</span><b>${escapeHTML(s.owner_email || 'sin dueño')}</b></div>
-      <div><span>Mensualidad</span><b>${money(s.monthly_fee || 0)} / mes</b></div>
-      <div><span>Vencimiento</span><b>${escapeHTML(dateOnly(s.next_payment_due) || 'Sin fecha')}</b></div>
-      <div><span>Último pago</span><b>${escapeHTML(lastPaid)}</b></div>
-    </div>
-    ${s.membership_notes ? `<div class="super-store-note"><span>Nota interna</span><p>${escapeHTML(s.membership_notes)}</p></div>` : ''}
-    <div class="super-store-actions">
-      <button class="btn ghost small" data-renew-store="${s.id}" type="button">Renovar 1 mes</button>
-      <button class="btn ghost small" data-membership-history="${s.id}" type="button">Historial</button>
-      <button class="btn ghost small" data-edit-membership="${s.id}" type="button">Editar</button>
-      <button class="btn ghost small" data-copy-catalog="${s.slug}" type="button">Copiar link</button>
-      <a class="btn ghost small" href="${storeUrl(s.slug)}" target="_blank">Catálogo</a>
-      <button class="btn ghost small" data-select-store="${s.id}" type="button">Entrar al admin</button>
-      ${s.status === 'suspended'
-        ? `<button class="btn primary small" data-activate-store="${s.id}" type="button">Activar</button>`
-        : `<button class="btn danger small" data-suspend-store="${s.id}" type="button">Suspender</button>`}
-    </div>
-  </article>`;
+  </details>`;
 }
 function membershipForm(store) {
   return `<form id="membershipForm" data-store-id="${store.id}" class="stack-form">

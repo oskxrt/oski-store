@@ -567,3 +567,157 @@ input[type="file"] { padding: 11px; background: #fff; }
   .super-store-actions .btn,
   .super-actions-stack .btn { width: 100%; justify-content: center; }
 }
+
+
+/* v4.2 Super Admin compacto con acordeón */
+.super-store-list {
+  display: grid;
+  gap: 10px;
+}
+.super-compact-store {
+  border: 1px solid var(--line);
+  border-left: 5px solid #e5e7eb;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 14px 34px rgba(15,23,42,.045);
+  overflow: hidden;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.super-compact-store.success { border-left-color: #16a34a; }
+.super-compact-store.warn { border-left-color: #f59e0b; }
+.super-compact-store.danger { border-left-color: #dc2626; }
+.super-compact-store.neutral { border-left-color: #64748b; }
+.super-compact-store:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 42px rgba(15,23,42,.07);
+}
+.super-compact-store[open] {
+  box-shadow: 0 20px 55px rgba(15,23,42,.08);
+}
+.super-compact-summary {
+  list-style: none;
+  display: grid;
+  grid-template-columns: minmax(230px, 1.4fr) minmax(190px, .9fr) minmax(110px, .55fr) minmax(110px, .55fr) 34px;
+  gap: 14px;
+  align-items: center;
+  padding: 16px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.super-compact-summary::-webkit-details-marker { display: none; }
+.super-compact-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.super-compact-title { min-width: 0; }
+.super-compact-title h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: -.035em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.super-compact-title p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-weight: 850;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.super-compact-status { display: flex; align-items: center; justify-content: flex-start; }
+.super-compact-info span,
+.super-detail-grid span {
+  display: block;
+  color: #64748b;
+  font-size: .72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 4px;
+}
+.super-compact-info b,
+.super-detail-grid b {
+  color: #111827;
+  font-weight: 950;
+  word-break: break-word;
+}
+.super-compact-chevron {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 950;
+  transition: transform .18s ease, background .18s ease;
+}
+.super-compact-store[open] .super-compact-chevron {
+  transform: rotate(180deg);
+  background: #111827;
+  color: #fff;
+}
+.super-compact-detail {
+  border-top: 1px solid #eef2f7;
+  padding: 14px 18px 18px;
+  display: grid;
+  gap: 14px;
+  animation: accordionFade .18s ease both;
+}
+@keyframes accordionFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.super-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.super-detail-grid > div,
+.super-store-note.compact {
+  border: 1px solid #eef2f7;
+  border-radius: 18px;
+  padding: 12px;
+  background: #fbfcff;
+}
+.super-store-note.compact p { margin: 6px 0 0; }
+.super-compact-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.super-compact-actions .btn {
+  min-height: 38px;
+}
+.super-list-panel .super-store-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (max-width: 1180px) {
+  .super-compact-summary {
+    grid-template-columns: minmax(220px,1fr) minmax(180px,auto) 34px;
+  }
+  .super-compact-info { display: none; }
+  .super-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .super-compact-summary {
+    grid-template-columns: 1fr 34px;
+    gap: 10px;
+    align-items: start;
+  }
+  .super-compact-status {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .super-compact-chevron {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .super-detail-grid { grid-template-columns: 1fr; }
+  .super-compact-actions .btn { width: 100%; justify-content: center; }
+}

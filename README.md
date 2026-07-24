@@ -163,3 +163,11 @@ Este paquete incluye un solo SQL integrado:
 Úsalo en Supabase SQL Editor para dejar la base con multi-tienda, tienda operativa, personalización visual y membresía mensual manual.
 
 El archivo `cloud-config.js` ya está configurado para el proyecto actual de Supabase usado durante el desarrollo. Si cambias de proyecto, actualiza `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
+
+
+## v4.2 Super Admin compacto
+
+- Super Admin rediseñado como lista compacta.
+- Cada tienda se abre con acordeón para ver detalle completo.
+- La vista principal muestra solo nombre, estado, vencimiento y mensualidad.
+- Acciones avanzadas quedan dentro del detalle: renovar, historial, editar, copiar link, catálogo, entrar al admin y suspender.
