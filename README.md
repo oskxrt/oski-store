@@ -189,3 +189,9 @@ Reemplaza principalmente admin.js y styles.css.
 - El orden guardado define el orden en el catálogo y en la vista rápida.
 
 No requiere cambios nuevos en Supabase si ya estás usando la base v4 completa.
+
+## v4.4.1 — Variantes arriba de imágenes
+
+- En el formulario de producto, el bloque de variantes ahora aparece antes del administrador de imágenes.
+- Se mantiene la previsualización, reordenamiento y orden guardado de imágenes de la v4.4.
+- No requiere cambios nuevos en Supabase.

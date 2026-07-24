@@ -348,8 +348,8 @@ function productForm(p={}) {
     <label>Precio<input id="pPrice" type="number" step="0.01" value="${p.price||0}"></label>
     <label>Estado<select id="pStatus"><option ${p.status==='Disponible'?'selected':''}>Disponible</option><option ${p.status==='Oculto'?'selected':''}>Oculto</option><option ${p.status==='Vendido'?'selected':''}>Vendido</option></select></label>
     <label class="wide">Descripción<textarea id="pDescription" placeholder="Detalles visibles para el cliente">${escapeHTML(p.description||'')}</textarea></label>
-    ${productImageManagerHTML(imgs)}
     <label class="wide">Variantes, una por línea: talla / color / stock<textarea id="pVariants" placeholder="M / Negro / 1\nL / Negro / 1">${escapeHTML(vars)}</textarea></label>
+    ${productImageManagerHTML(imgs)}
     <div class="modal-actions wide"><button class="btn ghost" type="button" data-close-modal>Cancelar</button><button class="btn primary" type="submit">Guardar producto</button></div>
   </form>`;
 }
