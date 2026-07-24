@@ -1029,8 +1029,26 @@ document.addEventListener('dragend', ()=>{
   refreshImageRowOrder();
 });
 document.addEventListener('click', async (e)=>{
+  const menuToggle = e.target.closest('#adminMenuToggle');
+  if (menuToggle) {
+    const sidebar = $('.admin-sidebar');
+    const open = !sidebar.classList.contains('menu-open');
+    sidebar.classList.toggle('menu-open', open);
+    menuToggle.setAttribute('aria-expanded', String(open));
+    menuToggle.textContent = open ? 'Cerrar' : 'Menú';
+    return;
+  }
   const viewBtn = e.target.closest('[data-view]');
-  if (viewBtn) showView(viewBtn.dataset.view);
+  if (viewBtn) {
+    showView(viewBtn.dataset.view);
+    const sidebar = $('.admin-sidebar');
+    const toggle = $('#adminMenuToggle');
+    if (window.matchMedia('(max-width: 760px)').matches && sidebar && toggle) {
+      sidebar.classList.remove('menu-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.textContent = 'Menú';
+    }
+  }
   const jump = e.target.closest('[data-view-jump]')?.dataset.viewJump;
   if (jump) showView(jump);
   if (e.target.closest('[data-close-modal]')) closeModal();

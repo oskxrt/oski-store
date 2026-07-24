@@ -50,7 +50,8 @@ function renderLoaderBrand() {
   if (!loader || !store) return;
   const name = settings.brand_name || store.name || 'Store';
   const mark = settings.logo_url ? `<img src="${settings.logo_url}" alt="${escapeHTML(name)}">` : `<span>${escapeHTML(name)}</span>`;
-  loader.innerHTML = `<div class="loader-brand">${mark}</div><div class="loader-mark"></div><p>Cargando ${escapeHTML(name)}...</p>`;
+  loader.innerHTML = `<div class="loader-brand">${mark}</div><div class="loader-progress" aria-hidden="true"><span></span></div><p>Cargando ${escapeHTML(name)}...</p>`;
+  loader.classList.add('loader-branded');
 }
 function socialIcon(label) {
   const key = normalize(label);
@@ -61,6 +62,7 @@ function socialIcon(label) {
 }
 function variantList(p) { return [...(p.product_variants || [])].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)); }
 function imageList(p) { return [...(p.product_images || [])].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(i=>i.url).filter(Boolean); }
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 function categories() { return [...new Set(products.map(p => p.category).filter(Boolean))].sort(); }
 function colors(p) { return [...new Set(variantList(p).map(v => v.color).filter(Boolean))]; }
 function sizes(p) { return [...new Set(variantList(p).map(v => v.size).filter(Boolean))]; }
@@ -180,6 +182,7 @@ async function loadStore() {
     products = data || [];
     renderShell();
     renderCatalog();
+    await sleep(650);
     $('#storeLoader').classList.add('hidden');
     $('#storeApp').classList.remove('hidden');
   } catch (err) {
@@ -189,7 +192,7 @@ async function loadStore() {
 
 document.addEventListener('click', async (event) => {
   const cat = event.target.closest('[data-cat]');
-  if (cat) { activeCategory = cat.dataset.cat || ''; renderCatalog(); $('#storeSidebar').classList.remove('open'); }
+  if (cat) { activeCategory = cat.dataset.cat || ''; renderCatalog(); $('#storeSidebar').classList.remove('open'); document.body.classList.remove('store-menu-open'); }
   const product = event.target.closest('[data-open-product]')?.dataset.openProduct;
   if (product) openQuick(product);
   if (event.target.closest('#quickClose')) closeQuick();
@@ -199,7 +202,17 @@ document.addEventListener('click', async (event) => {
   const dot = event.target.closest('[data-qdot]')?.dataset.qdot;
   if (dot !== undefined) setQuickSlide(Number(dot));
   if (event.target.closest('#quickWhatsapp')) window.open(`https://wa.me/${settings.whatsapp || ''}?text=${encodeURIComponent(quickMessage())}`, '_blank');
-  if (event.target.closest('#menuBtn')) $('#storeSidebar').classList.toggle('open');
+  if (event.target.closest('#menuBtn')) {
+    const sidebar = $('#storeSidebar');
+    const open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    document.body.classList.toggle('store-menu-open', open);
+    return;
+  }
+  if (document.body.classList.contains('store-menu-open') && !event.target.closest('#storeSidebar')) {
+    $('#storeSidebar').classList.remove('open');
+    document.body.classList.remove('store-menu-open');
+  }
   if (event.target.closest('#searchBtn')) $('#searchInput').focus();
 });
 $('#searchInput').addEventListener('input', renderCatalog);

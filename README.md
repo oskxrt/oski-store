@@ -195,3 +195,18 @@ No requiere cambios nuevos en Supabase si ya estás usando la base v4 completa.
 - En el formulario de producto, el bloque de variantes ahora aparece antes del administrador de imágenes.
 - Se mantiene la previsualización, reordenamiento y orden guardado de imágenes de la v4.4.
 - No requiere cambios nuevos en Supabase.
+
+## v4.5 - Mobile compact + imagen contain real
+- La vista rápida del catálogo usa marco cuadrado y `object-fit: contain` real, sin zoom ni recorte.
+- El panel admin móvil se compactó en todas las secciones para evitar espacios muertos.
+- Las tarjetas de productos/clientes/pedidos ahora tienen layout móvil específico para no quebrar texto ni desperdiciar altura.
+- El editor de imágenes conserva miniaturas, orden arrastrable y controles, pero se acomoda mejor en móvil.
+
+## v4.6 — Menú móvil y loader de catálogo
+
+- El panel admin en móvil ahora usa un header compacto con botón **Menú**.
+- Las opciones del admin se despliegan solo cuando se necesitan, para ahorrar espacio vertical.
+- El catálogo público ahora usa un solo loader con logo + barra de carga juntos.
+- Se mantiene el loader visible un momento para que el branding se alcance a ver.
+- El menú lateral del catálogo en móvil tiene overlay y cierre más natural.
+- La vista rápida en móvil baja un poco el tamaño máximo de imagen para que respire mejor dentro del cuadro.
