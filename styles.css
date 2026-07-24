@@ -1447,3 +1447,76 @@ input[type="file"] { padding: 11px; background: #fff; }
     max-height: 128px !important;
   }
 }
+
+/* v4.8 - centrado real de imagen en vista rápida / catálogo */
+.quick-photo {
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: #f7f5f1 !important;
+}
+.quick-photo .q-slide {
+  position: absolute !important;
+  inset: 0 !important;
+  display: none !important;
+  place-items: center !important;
+  padding: clamp(34px, 4.8vw, 76px) !important;
+  box-sizing: border-box !important;
+}
+.quick-photo .q-slide.active {
+  display: grid !important;
+}
+.quick-photo .q-slide img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+  transform: none !important;
+  display: block !important;
+  margin: auto !important;
+}
+.product-card-media {
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+}
+.product-card-media img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+  transform: none !important;
+  margin: auto !important;
+}
+@media (min-width: 761px) {
+  .quick-photo {
+    aspect-ratio: 1 / 1 !important;
+    min-height: 0 !important;
+  }
+  .quick-photo .q-slide img {
+    /* un poco de aire para que ninguna foto toque bordes */
+    max-width: 96% !important;
+    max-height: 96% !important;
+  }
+}
+@media (max-width: 760px) {
+  .quickview-card {
+    padding: 10px !important;
+  }
+  .quick-photo {
+    aspect-ratio: 1 / 1 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+  }
+  .quick-photo .q-slide {
+    padding: 24px !important;
+  }
+  .quick-photo .q-slide img {
+    max-width: 94% !important;
+    max-height: 94% !important;
+  }
+}
