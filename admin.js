@@ -18,7 +18,10 @@ let products = [];
 let customers = [];
 let orders = [];
 let catalogOrders = [];
+let membershipPayments = [];
 let activeView = 'dashboard';
+let superSearchText = '';
+let superStatusFilter = 'all';
 
 function setStatus(sel, text) { const el = $(sel); if (el) el.textContent = text || ''; }
 function storeUrl(slug=currentStore?.slug) { return `${location.origin}/t/${slug}`; }
@@ -89,6 +92,35 @@ function customerStats(customer) {
   return { orders: related.length, sold, balance, last: related[0]?.created_at || '' };
 }
 
+function storeMembershipPayments(storeId) {
+  return membershipPayments
+    .filter(p => p.store_id === storeId)
+    .sort((a,b)=> new Date(b.paid_at || b.created_at || 0) - new Date(a.paid_at || a.created_at || 0));
+}
+function latestMembershipPayment(storeId) {
+  return storeMembershipPayments(storeId)[0] || null;
+}
+function dueSoonStoresCount() {
+  return stores.filter(s => {
+    const st = storeBillingStatus(s);
+    return st.key === 'soon' || st.key === 'past_due';
+  }).length;
+}
+async function loadMembershipPayments() {
+  if (!isSuper) { membershipPayments = []; return; }
+  const { data, error } = await supabase.from('membership_payments').select('*').order('paid_at', { ascending:false });
+  if (error) { console.warn(error); membershipPayments = []; return; }
+  membershipPayments = data || [];
+}
+async function copyToClipboard(text, successMessage='Copiado al portapapeles') {
+  try {
+    await navigator.clipboard.writeText(text);
+    alert(successMessage);
+  } catch (err) {
+    window.prompt('Copia este texto:', text);
+  }
+}
+
 function storeBillingStatus(store) {
   if (!store) return { key:'unknown', label:'Sin tienda', tone:'neutral', overdue:false, daysLeft:null };
   if (store.status === 'suspended') return { key:'suspended', label:'Suspendida', tone:'danger', overdue:true, daysLeft:null };
@@ -126,6 +158,7 @@ async function bootstrap() {
   isSuper = !!superData;
   $('#superNavBtn').classList.toggle('hidden', !isSuper);
   await loadStores();
+  await loadMembershipPayments();
   await loadCurrentStoreData();
   showView(isSuper && new URLSearchParams(location.search).get('super') ? 'super' : activeView || 'dashboard');
 }
@@ -642,58 +675,149 @@ async function saveSettings() {
   const { error } = await supabase.from('store_settings').upsert(row, { onConflict:'store_id' });
   if (error) throw error;
 }
+function superStatusBadgeClass(filter, active) {
+  return active === filter ? 'filter-pill active' : 'filter-pill';
+}
+function filteredSuperStores() {
+  const q = normalize(superSearchText);
+  let list = [...stores];
+  if (q) {
+    list = list.filter(s => normalize([s.name, s.slug, s.owner_email, s.membership_notes].filter(Boolean).join(' ')).includes(q));
+  }
+  if (superStatusFilter === 'active') list = list.filter(s => s.status === 'active');
+  if (superStatusFilter === 'suspended') list = list.filter(s => s.status === 'suspended');
+  if (superStatusFilter === 'soon') list = list.filter(s => ['soon','past_due'].includes(storeBillingStatus(s).key));
+  if (superStatusFilter === 'archived') list = list.filter(s => s.status === 'archived');
+  return list.sort((a,b) => {
+    const ad = a.next_payment_due ? new Date(a.next_payment_due) : new Date('2999-12-31');
+    const bd = b.next_payment_due ? new Date(b.next_payment_due) : new Date('2999-12-31');
+    return ad - bd;
+  });
+}
+function upcomingStoresMiniList() {
+  const upcoming = [...stores]
+    .filter(s => ['soon','past_due'].includes(storeBillingStatus(s).key))
+    .sort((a,b)=>(new Date(a.next_payment_due||'2999-12-31')) - (new Date(b.next_payment_due||'2999-12-31')))
+    .slice(0,4);
+  if (!upcoming.length) return '<p class="muted">No hay vencimientos cercanos.</p>';
+  return `<div class="super-mini-list">${upcoming.map(s => {
+    const st = storeBillingStatus(s);
+    return `<div class="super-mini-item"><div><b>${escapeHTML(s.name)}</b><span>${escapeHTML(dateOnly(s.next_payment_due) || 'Sin fecha')}</span></div><span class="badge membership-badge ${st.tone}">${escapeHTML(st.label)}</span></div>`;
+  }).join('')}</div>`;
+}
+function createStoreFormHTML() {
+  return `<form id="createStoreForm" class="modal-form two-col">
+    <label>Nombre<input id="newStoreName" required placeholder="Tienda de Ana"></label>
+    <label>Slug<input id="newStoreSlug" placeholder="tienda-ana"></label>
+    <label>Email dueño<input id="newOwnerEmail" type="email" required placeholder="cliente@email.com"></label>
+    <label>Mensualidad<input id="newMonthlyFee" type="number" min="0" step="1" value="299"></label>
+    <label>Primer vencimiento<input id="newDueDate" type="date" value="${addMonthsISO(todayISO(), 1)}"></label>
+    <label class="wide">Notas internas<textarea id="newMembershipNotes" placeholder="Opcional: referencia del pago, observaciones, etc."></textarea></label>
+    <div class="wide modal-inline-note"><b>Plan actual:</b> Mensual. Después podrás renovarla, suspenderla o editarla desde la lista de tiendas.</div>
+    <div class="wide modal-actions"><button class="btn ghost" type="button" data-close-modal>Cancelar</button><button class="btn primary" type="submit">Crear tienda</button></div>
+  </form>`;
+}
 function renderSuper() {
   if (!isSuper) { $('#superView').innerHTML = '<div class="empty">Solo super usuario.</div>'; return; }
   const activeCount = stores.filter(s => s.status === 'active').length;
   const suspendedCount = stores.filter(s => s.status === 'suspended').length;
+  const soonCount = dueSoonStoresCount();
   const monthlyTotal = stores.filter(s => s.status === 'active').reduce((sum,s)=>sum+Number(s.monthly_fee || 0),0);
   $('#superView').innerHTML = `
-    <div class="stats-grid membership-stats">
-      <article class="stat-card"><span>Tiendas activas</span><strong>${activeCount}</strong><small>Membresía mensual</small></article>
+    <div class="stats-grid membership-stats super-stats-grid">
+      <article class="stat-card"><span>Tiendas activas</span><strong>${activeCount}</strong><small>Membresías al corriente</small></article>
+      <article class="stat-card"><span>Por vencer / vencidas</span><strong>${soonCount}</strong><small>Requieren atención</small></article>
       <article class="stat-card"><span>Suspendidas</span><strong>${suspendedCount}</strong><small>No visibles al público</small></article>
-      <article class="stat-card"><span>Mensualidad proyectada</span><strong>${money(monthlyTotal)}</strong><small>Si todas pagan este mes</small></article>
+      <article class="stat-card"><span>Ingreso mensual proyectado</span><strong>${money(monthlyTotal)}</strong><small>Solo tiendas activas</small></article>
     </div>
-    <div class="panel-grid">
-      <section class="panel-card">
-        <h3>Crear tienda</h3>
-        <form id="createStoreForm" class="stack-form">
-          <label>Nombre<input id="newStoreName" required placeholder="Tienda de Ana"></label>
-          <label>Slug<input id="newStoreSlug" placeholder="tienda-ana"></label>
-          <label>Email dueño<input id="newOwnerEmail" type="email" required placeholder="cliente@email.com"></label>
-          <div class="form-grid two">
-            <label>Mensualidad<input id="newMonthlyFee" type="number" min="0" step="1" value="299"></label>
-            <label>Primer vencimiento<input id="newDueDate" type="date" value="${addMonthsISO(todayISO(), 1)}"></label>
-          </div>
-          <p class="muted">Por ahora hay un solo plan: <b>Mensual</b>. Tú controlas manualmente pagos, vencimiento y suspensión.</p>
-          <button class="btn primary" type="submit">Crear tienda</button>
-        </form>
-      </section>
-      <section class="panel-card wide-card">
-        <div class="panel-head"><h3>Membresías / tiendas</h3><span class="badge">${stores.length}</span></div>
-        <div class="cards-list membership-list">
-          ${stores.map(s=>membershipStoreCard(s)).join('') || '<p class="muted">Sin tiendas.</p>'}
+    <div class="super-layout">
+      <section class="panel-card super-side-panel">
+        <div class="panel-head"><h3>Acciones rápidas</h3></div>
+        <p class="muted">Administra tu plataforma sin saturar la pantalla. Aquí puedes crear tiendas, revisar vencimientos y entrar rápido al catálogo o panel de cada cliente.</p>
+        <div class="super-actions-stack">
+          <button class="btn primary" type="button" data-new-store>Nueva tienda</button>
+          <button class="btn ghost" type="button" id="superReloadBtn">Recargar datos</button>
+        </div>
+        <div class="super-help-card">
+          <b>Checklist rápido</b>
+          <ul>
+            <li>Crear tienda con nombre, slug y correo del dueño.</li>
+            <li>Renovar mensualidad en un clic.</li>
+            <li>Copiar link del catálogo o entrar al admin.</li>
+            <li>Ver historial de pagos de membresía.</li>
+          </ul>
+        </div>
+        <div class="super-upcoming-box">
+          <div class="panel-head compact"><h4>Vencimientos cercanos</h4><span class="badge">${soonCount}</span></div>
+          ${upcomingStoresMiniList()}
         </div>
       </section>
+      <section class="panel-card super-list-panel">
+        <div class="super-toolbar">
+          <div>
+            <h3>Membresías / tiendas</h3>
+            <p class="muted">Busca por nombre, slug o correo. También filtra por estado para detectar rápido lo urgente.</p>
+          </div>
+          <div class="super-toolbar-right">
+            <input id="superSearch" type="search" placeholder="Buscar tienda, slug o correo" value="${escapeHTML(superSearchText)}">
+            <div class="filter-pills">
+              <button type="button" class="${superStatusBadgeClass('all', superStatusFilter)}" data-super-filter="all">Todas</button>
+              <button type="button" class="${superStatusBadgeClass('active', superStatusFilter)}" data-super-filter="active">Activas</button>
+              <button type="button" class="${superStatusBadgeClass('soon', superStatusFilter)}" data-super-filter="soon">Por vencer</button>
+              <button type="button" class="${superStatusBadgeClass('suspended', superStatusFilter)}" data-super-filter="suspended">Suspendidas</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-head compact"><h4>Tiendas encontradas</h4><span class="badge" id="superStoreCount">0</span></div>
+        <div id="superStoreList" class="super-store-grid"></div>
+      </section>
     </div>`;
+  renderSuperStoreList();
+}
+function renderSuperStoreList() {
+  const list = filteredSuperStores();
+  const wrap = $('#superStoreList');
+  if (!wrap) return;
+  const count = $('#superStoreCount');
+  if (count) count.textContent = list.length;
+  wrap.innerHTML = list.map(s=>membershipStoreCard(s)).join('') || '<div class="empty">No se encontraron tiendas con ese filtro.</div>';
 }
 function membershipStoreCard(s) {
   const billing = storeBillingStatus(s);
-  return `<article class="admin-card-row membership-row ${billing.tone}">
-    <div class="grow">
-      <b>${escapeHTML(s.name)}</b>
-      <span>${escapeHTML(s.slug)} · ${escapeHTML(s.owner_email || 'sin dueño')}</span>
-      <span>Plan ${escapeHTML(s.plan || 'Mensual')} · ${money(s.monthly_fee || 0)} / mes · vence: ${escapeHTML(dateOnly(s.next_payment_due) || 'sin fecha')}</span>
-      ${s.membership_notes ? `<span>Nota: ${escapeHTML(s.membership_notes)}</span>` : ''}
+  const payment = latestMembershipPayment(s.id);
+  const initials = (s.name || 'T').trim().slice(0,2).toUpperCase();
+  const lastPaid = payment ? `${money(payment.amount || 0)} · ${dateOnly(payment.paid_at || payment.created_at)}` : 'Sin pagos registrados';
+  return `<article class="super-store-card ${billing.tone}">
+    <div class="super-store-top">
+      <div class="super-store-ident">
+        <div class="super-store-mark">${escapeHTML(initials)}</div>
+        <div>
+          <h4>${escapeHTML(s.name)}</h4>
+          <p>/t/${escapeHTML(s.slug)}</p>
+        </div>
+      </div>
+      <div class="super-store-badges">
+        ${membershipBadge(s)}
+        <span class="badge soft">${escapeHTML(s.plan || 'Mensual')}</span>
+      </div>
     </div>
-    <div class="membership-actions">
-      ${membershipBadge(s)}
+    <div class="super-store-meta">
+      <div><span>Dueño</span><b>${escapeHTML(s.owner_email || 'sin dueño')}</b></div>
+      <div><span>Mensualidad</span><b>${money(s.monthly_fee || 0)} / mes</b></div>
+      <div><span>Vencimiento</span><b>${escapeHTML(dateOnly(s.next_payment_due) || 'Sin fecha')}</b></div>
+      <div><span>Último pago</span><b>${escapeHTML(lastPaid)}</b></div>
+    </div>
+    ${s.membership_notes ? `<div class="super-store-note"><span>Nota interna</span><p>${escapeHTML(s.membership_notes)}</p></div>` : ''}
+    <div class="super-store-actions">
       <button class="btn ghost small" data-renew-store="${s.id}" type="button">Renovar 1 mes</button>
+      <button class="btn ghost small" data-membership-history="${s.id}" type="button">Historial</button>
       <button class="btn ghost small" data-edit-membership="${s.id}" type="button">Editar</button>
-      ${s.status === 'suspended'
-        ? `<button class="btn ghost small" data-activate-store="${s.id}" type="button">Activar</button>`
-        : `<button class="btn danger small" data-suspend-store="${s.id}" type="button">Suspender</button>`}
+      <button class="btn ghost small" data-copy-catalog="${s.slug}" type="button">Copiar link</button>
       <a class="btn ghost small" href="${storeUrl(s.slug)}" target="_blank">Catálogo</a>
-      <button class="btn ghost small" data-select-store="${s.id}" type="button">Admin</button>
+      <button class="btn ghost small" data-select-store="${s.id}" type="button">Entrar al admin</button>
+      ${s.status === 'suspended'
+        ? `<button class="btn primary small" data-activate-store="${s.id}" type="button">Activar</button>`
+        : `<button class="btn danger small" data-suspend-store="${s.id}" type="button">Suspender</button>`}
     </div>
   </article>`;
 }
@@ -710,6 +834,25 @@ function membershipForm(store) {
     <label>Notas internas<textarea id="mNotes" placeholder="Pago por transferencia, pendiente comprobante, etc.">${escapeHTML(store.membership_notes || '')}</textarea></label>
     <button class="btn primary" type="submit">Guardar membresía</button>
   </form>`;
+}
+
+function membershipHistoryModal(storeId) {
+  const store = stores.find(s=>s.id===storeId);
+  const rows = storeMembershipPayments(storeId);
+  const total = rows.reduce((sum,p)=>sum+Number(p.amount||0),0);
+  return `<div class="membership-history">
+    <div class="stats-grid membership-history-stats">
+      <article class="stat-card"><span>Tienda</span><strong>${escapeHTML(store?.name || 'Tienda')}</strong><small>${escapeHTML(store?.slug || '')}</small></article>
+      <article class="stat-card"><span>Pagos registrados</span><strong>${rows.length}</strong><small>Historial total</small></article>
+      <article class="stat-card"><span>Total cobrado</span><strong>${money(total)}</strong><small>Membresías registradas</small></article>
+    </div>
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead><tr><th>Fecha</th><th>Monto</th><th>Periodo</th><th>Nota</th></tr></thead>
+        <tbody>${rows.map(p=>`<tr><td>${escapeHTML(dateOnly(p.paid_at || p.created_at) || '—')}</td><td>${money(p.amount || 0)}</td><td>${escapeHTML(dateOnly(p.period_start) || '—')} → ${escapeHTML(dateOnly(p.period_end) || '—')}</td><td>${escapeHTML(p.note || '')}</td></tr>`).join('') || '<tr><td colspan="4">Sin pagos registrados.</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>`;
 }
 async function saveMembershipFromForm(form) {
   const id = form.dataset.storeId;
@@ -737,6 +880,8 @@ async function createStoreFromForm() {
   await supabase.from('store_settings').insert({ store_id: store.id, brand_name: name, theme:'minimal', primary_color:'#0b0b0d', bg_color:'#f8f7f3', text_color:'#111827', sidebar_color:'#fbfaf7', sidebar_text_color:'#111827', loading_bg_color:'#f8f7f3' });
   await supabase.from('store_members').insert({ store_id: store.id, email: owner, role:'owner', status:'active' });
   await supabase.from('membership_payments').insert({ store_id: store.id, amount: 0, period_start: todayISO(), period_end: due, note: 'Tienda creada / periodo inicial' });
+  const notes = $('#newMembershipNotes')?.value?.trim();
+  if (notes) await supabase.from('stores').update({ membership_notes: notes }).eq('id', store.id);
 }
 async function renewStore(storeId) {
   const store = stores.find(s=>s.id===storeId);
@@ -758,7 +903,7 @@ async function activateStore(storeId) {
   const { error } = await supabase.from('stores').update({ status:'active', billing_status:'active', next_payment_due: due }).eq('id', storeId);
   if (error) throw error;
 }
-async function reloadAll() { await loadStores(); await loadCurrentStoreData(); renderActiveView(); }
+async function reloadAll() { await loadStores(); await loadMembershipPayments(); await loadCurrentStoreData(); renderActiveView(); }
 
 $('#loginForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -777,6 +922,7 @@ $('#modal').addEventListener('click', (e)=>{ if (e.target === $('#modal')) close
 document.addEventListener('input', (e)=>{
   if (e.target.closest('#orderForm')) updateOrderLiveTotals();
   if (e.target.id === 'oCustomerName') fillCustomerFromName();
+  if (e.target.id === 'superSearch') { superSearchText = e.target.value; renderSuperStoreList(); }
   if (['sPrimary','sBg','sText','sSidebar','sSidebarTextColor','sLoaderBg'].includes(e.target.id)) refreshColorLabels();
 });
 document.addEventListener('change', (e)=>{
@@ -790,6 +936,7 @@ document.addEventListener('click', async (e)=>{
   const jump = e.target.closest('[data-view-jump]')?.dataset.viewJump;
   if (jump) showView(jump);
   if (e.target.closest('[data-close-modal]')) closeModal();
+  if (e.target.closest('[data-new-store]')) openModal('Nueva tienda', createStoreFormHTML(), true);
   if (e.target.closest('[data-new-product]')) openModal('Nuevo producto', productForm(), true);
   const ep = e.target.closest('[data-edit-product]')?.dataset.editProduct;
   if (ep) openModal('Editar producto', productForm(products.find(p=>p.id===ep)), true);
@@ -822,12 +969,18 @@ document.addEventListener('click', async (e)=>{
   if (activate) { await activateStore(activate); await reloadAll(); showView('super'); }
   const editMembership = e.target.closest('[data-edit-membership]')?.dataset.editMembership;
   if (editMembership) { const s = stores.find(x=>x.id===editMembership); if (s) openModal('Editar membresía', membershipForm(s), true); }
+  const membershipHistory = e.target.closest('[data-membership-history]')?.dataset.membershipHistory;
+  if (membershipHistory) { openModal('Historial de membresía', membershipHistoryModal(membershipHistory), true); }
+  const copyCatalog = e.target.closest('[data-copy-catalog]')?.dataset.copyCatalog;
+  if (copyCatalog) { await copyToClipboard(storeUrl(copyCatalog), 'Link del catálogo copiado'); }
   const ss = e.target.closest('[data-select-store]')?.dataset.selectStore;
   if (ss) { currentStore = stores.find(s=>s.id===ss); renderStoreSwitcher(); await loadCurrentStoreData(); showView('dashboard'); }
   if (e.target.closest('#resetThemeColors')) { const [p,b,t,side,sideText,loader] = themeColors[$('#sTheme').value] || themeColors.minimal; $('#sPrimary').value=p; $('#sBg').value=b; $('#sText').value=t; $('#sSidebar').value=side; $('#sSidebarTextColor').value=sideText; $('#sLoaderBg').value=loader; refreshColorLabels(); }
   if (e.target.closest('#sidebarTextWhite')) { $('#sSidebarTextColor').value = '#ffffff'; refreshColorLabels(); }
   if (e.target.closest('#sidebarTextBlack')) { $('#sSidebarTextColor').value = '#111827'; refreshColorLabels(); }
   if (e.target.closest('#sidebarTextAuto')) { $('#sSidebarTextColor').value = readableTextColor($('#sSidebar').value); refreshColorLabels(); }
+  if (e.target.closest('[data-super-filter]')) { superStatusFilter = e.target.closest('[data-super-filter]').dataset.superFilter; renderSuper(); }
+  if (e.target.id === 'superReloadBtn') { await reloadAll(); showView('super'); }
 });
 
 document.addEventListener('submit', async (e)=>{
@@ -837,7 +990,7 @@ document.addEventListener('submit', async (e)=>{
     if (e.target.id === 'orderForm') { e.preventDefault(); await saveOrderFromForm(); closeModal(); await reloadAll(); }
     if (e.target.id === 'settingsForm') { e.preventDefault(); await saveSettings(); await reloadAll(); alert('Tienda guardada.'); }
     if (e.target.id === 'membershipForm') { e.preventDefault(); await saveMembershipFromForm(e.target); closeModal(); await reloadAll(); showView('super'); }
-    if (e.target.id === 'createStoreForm') { e.preventDefault(); await createStoreFromForm(); await reloadAll(); showView('super'); }
+    if (e.target.id === 'createStoreForm') { e.preventDefault(); await createStoreFromForm(); closeModal(); await reloadAll(); showView('super'); }
   } catch (err) {
     alert(err.message || err);
   }
