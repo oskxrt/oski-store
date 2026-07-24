@@ -178,3 +178,14 @@ El archivo `cloud-config.js` ya está configurado para el proyecto actual de Sup
 Esta versión regresa el panel admin a la base estable v4.2 con Super Admin en acordeón, porque la v4.3 rompió el submit/login en algunos navegadores. No requiere cambios de Supabase si ya corriste v4 completo o v4.2.
 
 Reemplaza principalmente admin.js y styles.css.
+
+## v4.4 — Imágenes de producto más limpias
+
+- El carrusel de vista rápida ya encaja la imagen completa dentro del cuadro sin hacer zoom ni recortar.
+- En el formulario de producto se reemplazó el textarea de URLs por filas individuales.
+- Cada URL muestra miniatura de previsualización.
+- Al llenar la última fila, se crea automáticamente otra fila vacía.
+- Las imágenes pueden reordenarse arrastrando las filas o usando botones de subir/bajar.
+- El orden guardado define el orden en el catálogo y en la vista rápida.
+
+No requiere cambios nuevos en Supabase si ya estás usando la base v4 completa.

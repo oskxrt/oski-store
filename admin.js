@@ -22,6 +22,7 @@ let membershipPayments = [];
 let activeView = 'dashboard';
 let superSearchText = '';
 let superStatusFilter = 'all';
+let draggedImageRow = null;
 
 function setStatus(sel, text) { const el = $(sel); if (el) el.textContent = text || ''; }
 function storeUrl(slug=currentStore?.slug) { return `${location.origin}/t/${slug}`; }
@@ -278,8 +279,64 @@ function productRow(p) {
   const img = firstImage(p);
   return `<article class="admin-card-row product-admin-row"><div class="thumb product-thumb">${img?`<img src="${img}" alt="${escapeHTML(p.name)}">`:'—'}</div><div class="grow"><b>${escapeHTML(p.name)}</b><span>${escapeHTML(p.sku||'')} · ${escapeHTML(p.category||'Sin categoría')} · Stock ${productStock(p)}</span><small>${escapeHTML(p.description || '')}</small></div><strong>${money(p.price)}</strong><span class="badge ${p.status==='Disponible'?'':'danger'}">${escapeHTML(p.status||'Disponible')}</span><button class="btn ghost small" data-edit-product="${p.id}">Editar</button></article>`;
 }
+function productImageRowTemplate(url='') {
+  const clean = String(url || '').trim();
+  return `<div class="image-url-row" draggable="true">
+    <button class="image-drag-handle" type="button" title="Arrastrar para ordenar">⋮⋮</button>
+    <div class="image-url-thumb">${clean ? `<img src="${escapeHTML(clean)}" alt="Preview">` : '<span>Foto</span>'}</div>
+    <label class="image-url-input"><span>Imagen <b class="image-url-number">1</b></span><input class="pImageUrl" value="${escapeHTML(clean)}" placeholder="https://...jpg"></label>
+    <button class="btn ghost small image-move-up" type="button" data-image-up title="Subir">↑</button>
+    <button class="btn ghost small image-move-down" type="button" data-image-down title="Bajar">↓</button>
+    <button class="remove-row" type="button" data-image-remove title="Quitar imagen">×</button>
+  </div>`;
+}
+function productImageManagerHTML(urls=[]) {
+  const cleanUrls = urls.map(u=>String(u||'').trim()).filter(Boolean);
+  const rows = cleanUrls.length ? cleanUrls : [''];
+  if (rows[rows.length - 1]) rows.push('');
+  return `<section class="image-manager wide">
+    <div class="image-manager-head">
+      <div><b>Imágenes del producto</b><small>Agrega URLs, previsualiza miniaturas y arrastra para cambiar el orden del carrusel.</small></div>
+      <button class="btn ghost small" type="button" data-add-image-row>Agregar imagen</button>
+    </div>
+    <div id="productImageRows" class="image-url-list">${rows.map(productImageRowTemplate).join('')}</div>
+  </section>`;
+}
+function refreshImageRowOrder() {
+  $$('.image-url-row').forEach((row, index) => {
+    const num = $('.image-url-number', row);
+    if (num) num.textContent = index + 1;
+  });
+}
+function updateImageRowPreview(row) {
+  if (!row) return;
+  const url = $('.pImageUrl', row)?.value.trim() || '';
+  const preview = $('.image-url-thumb', row);
+  if (!preview) return;
+  preview.classList.remove('broken');
+  preview.innerHTML = url ? `<img src="${escapeHTML(url)}" alt="Preview">` : '<span>Foto</span>';
+}
+function ensureTrailingImageRow() {
+  const box = $('#productImageRows');
+  if (!box) return;
+  let rows = $$('.image-url-row', box);
+  if (!rows.length || $('.pImageUrl', rows[rows.length - 1])?.value.trim()) {
+    box.insertAdjacentHTML('beforeend', productImageRowTemplate(''));
+  }
+  rows = $$('.image-url-row', box);
+  const emptyRows = rows.filter(row => !$('.pImageUrl', row)?.value.trim());
+  emptyRows.slice(0, -1).forEach(row => row.remove());
+  refreshImageRowOrder();
+}
+function moveImageRow(row, direction) {
+  const box = $('#productImageRows');
+  if (!box || !row) return;
+  if (direction < 0 && row.previousElementSibling) box.insertBefore(row, row.previousElementSibling);
+  if (direction > 0 && row.nextElementSibling) box.insertBefore(row.nextElementSibling, row);
+  ensureTrailingImageRow();
+}
 function productForm(p={}) {
-  const imgs = (p.product_images || []).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(i=>i.url).join('\n');
+  const imgs = (p.product_images || []).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(i=>i.url);
   const vars = (p.product_variants || []).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).map(v=>[v.size,v.color,v.stock].filter(x=>x!==undefined).join(' / ')).join('\n');
   return `<form id="productForm" class="modal-form two-col">
     <input type="hidden" id="productId" value="${p.id||''}">
@@ -291,7 +348,7 @@ function productForm(p={}) {
     <label>Precio<input id="pPrice" type="number" step="0.01" value="${p.price||0}"></label>
     <label>Estado<select id="pStatus"><option ${p.status==='Disponible'?'selected':''}>Disponible</option><option ${p.status==='Oculto'?'selected':''}>Oculto</option><option ${p.status==='Vendido'?'selected':''}>Vendido</option></select></label>
     <label class="wide">Descripción<textarea id="pDescription" placeholder="Detalles visibles para el cliente">${escapeHTML(p.description||'')}</textarea></label>
-    <label class="wide">URLs de imágenes, una por línea<textarea id="pImages" placeholder="https://...">${escapeHTML(imgs)}</textarea></label>
+    ${productImageManagerHTML(imgs)}
     <label class="wide">Variantes, una por línea: talla / color / stock<textarea id="pVariants" placeholder="M / Negro / 1\nL / Negro / 1">${escapeHTML(vars)}</textarea></label>
     <div class="modal-actions wide"><button class="btn ghost" type="button" data-close-modal>Cancelar</button><button class="btn primary" type="submit">Guardar producto</button></div>
   </form>`;
@@ -303,7 +360,7 @@ async function saveProductFromForm() {
   if (error) throw error;
   const productId = data.id;
   await supabase.from('product_images').delete().eq('product_id', productId);
-  const imageRows = $('#pImages').value.split('\n').map(x=>x.trim()).filter(Boolean).map((url,i)=>({ store_id: currentStore.id, product_id: productId, url, sort_order:i }));
+  const imageRows = $$('.pImageUrl', $('#productForm')).map(input=>input.value.trim()).filter(Boolean).map((url,i)=>({ store_id: currentStore.id, product_id: productId, url, sort_order:i }));
   if (imageRows.length) await supabase.from('product_images').insert(imageRows);
   await supabase.from('product_variants').delete().eq('product_id', productId);
   const variantRows = $('#pVariants').value.split('\n').map((line,i)=>{
@@ -933,6 +990,7 @@ $('#modal').addEventListener('click', (e)=>{ if (e.target === $('#modal')) close
 document.addEventListener('input', (e)=>{
   if (e.target.closest('#orderForm')) updateOrderLiveTotals();
   if (e.target.id === 'oCustomerName') fillCustomerFromName();
+  if (e.target.classList?.contains('pImageUrl')) { updateImageRowPreview(e.target.closest('.image-url-row')); ensureTrailingImageRow(); }
   if (e.target.id === 'superSearch') { superSearchText = e.target.value; renderSuperStoreList(); }
   if (['sPrimary','sBg','sText','sSidebar','sSidebarTextColor','sLoaderBg'].includes(e.target.id)) refreshColorLabels();
 });
@@ -941,6 +999,35 @@ document.addEventListener('change', (e)=>{
   if (row && e.target.classList.contains('oiProduct')) refreshVariantSelect(row);
   if (e.target.closest('#orderForm')) updateOrderLiveTotals();
 });
+document.addEventListener('dragstart', (e)=>{
+  const row = e.target.closest('.image-url-row');
+  if (!row || !row.closest('#productImageRows')) return;
+  draggedImageRow = row;
+  row.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+});
+document.addEventListener('dragover', (e)=>{
+  const box = e.target.closest('#productImageRows');
+  const row = e.target.closest('.image-url-row');
+  if (!box || !row || !draggedImageRow || row === draggedImageRow) return;
+  e.preventDefault();
+  const rect = row.getBoundingClientRect();
+  const after = e.clientY > rect.top + rect.height / 2;
+  box.insertBefore(draggedImageRow, after ? row.nextSibling : row);
+  refreshImageRowOrder();
+});
+document.addEventListener('drop', (e)=>{
+  if (!draggedImageRow) return;
+  e.preventDefault();
+  draggedImageRow.classList.remove('dragging');
+  draggedImageRow = null;
+  ensureTrailingImageRow();
+});
+document.addEventListener('dragend', ()=>{
+  if (draggedImageRow) draggedImageRow.classList.remove('dragging');
+  draggedImageRow = null;
+  refreshImageRowOrder();
+});
 document.addEventListener('click', async (e)=>{
   const viewBtn = e.target.closest('[data-view]');
   if (viewBtn) showView(viewBtn.dataset.view);
@@ -948,9 +1035,9 @@ document.addEventListener('click', async (e)=>{
   if (jump) showView(jump);
   if (e.target.closest('[data-close-modal]')) closeModal();
   if (e.target.closest('[data-new-store]')) openModal('Nueva tienda', createStoreFormHTML(), true);
-  if (e.target.closest('[data-new-product]')) openModal('Nuevo producto', productForm(), true);
+  if (e.target.closest('[data-new-product]')) { openModal('Nuevo producto', productForm(), true); refreshImageRowOrder(); }
   const ep = e.target.closest('[data-edit-product]')?.dataset.editProduct;
-  if (ep) openModal('Editar producto', productForm(products.find(p=>p.id===ep)), true);
+  if (ep) { openModal('Editar producto', productForm(products.find(p=>p.id===ep)), true); refreshImageRowOrder(); }
   if (e.target.closest('[data-new-customer]')) openModal('Nuevo cliente', customerForm());
   const ec = e.target.closest('[data-edit-customer]')?.dataset.editCustomer;
   if (ec) openModal('Editar cliente', customerForm(customers.find(c=>c.id===ec)));
@@ -972,6 +1059,13 @@ document.addEventListener('click', async (e)=>{
   if (e.target.closest('[data-remove-item]')) { e.target.closest('[data-order-item-row]')?.remove(); updateOrderLiveTotals(); }
   if (e.target.closest('[data-add-payment]')) { const box = $('#paymentsEdit'); if (box) { if (box.querySelector('.muted')) box.innerHTML = ''; box.insertAdjacentHTML('beforeend', paymentRowTemplate({amount:0, method:'Efectivo'})); updateOrderLiveTotals(); } }
   if (e.target.closest('[data-remove-payment]')) { e.target.closest('[data-payment-row]')?.remove(); updateOrderLiveTotals(); }
+  if (e.target.closest('[data-add-image-row]')) { $('#productImageRows')?.insertAdjacentHTML('beforeend', productImageRowTemplate('')); refreshImageRowOrder(); }
+  const removeImage = e.target.closest('[data-image-remove]');
+  if (removeImage) { removeImage.closest('.image-url-row')?.remove(); ensureTrailingImageRow(); }
+  const imageUp = e.target.closest('[data-image-up]');
+  if (imageUp) moveImageRow(imageUp.closest('.image-url-row'), -1);
+  const imageDown = e.target.closest('[data-image-down]');
+  if (imageDown) moveImageRow(imageDown.closest('.image-url-row'), 1);
   const renew = e.target.closest('[data-renew-store]')?.dataset.renewStore;
   if (renew) { await renewStore(renew); await reloadAll(); showView('super'); }
   const suspend = e.target.closest('[data-suspend-store]')?.dataset.suspendStore;
