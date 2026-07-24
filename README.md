@@ -217,3 +217,8 @@ No requiere cambios nuevos en Supabase si ya estás usando la base v4 completa.
 - Loader del catálogo sin marca OSKI genérica: solo aparece el logo/nombre real de la tienda con barra de carga.
 - Producto en catálogo móvil más grande.
 - Vista rápida con imagen más grande, centrada y sin recorte.
+
+## v4.8.1
+- Separé el comportamiento de imagen del catálogo principal y la vista rápida.
+- El grid principal vuelve a un encuadre seguro para que en móvil no se vea mocho.
+- La vista rápida mantiene centrado y `contain` fuerte.

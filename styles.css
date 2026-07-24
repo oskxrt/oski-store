@@ -1520,3 +1520,50 @@ input[type="file"] { padding: 11px; background: #fff; }
     max-height: 94% !important;
   }
 }
+
+/* v4.8.1 - separar imagen principal del catálogo vs vista rápida
+   La vista rápida conserva centrado/contain fuerte.
+   El grid principal vuelve a un encuadre seguro para que no se vea mocho en móvil. */
+.product-card-media {
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: rgba(255,255,255,.35) !important;
+  padding: clamp(12px, 3vw, 22px) !important;
+}
+.product-card-media img {
+  width: auto !important;
+  height: auto !important;
+  max-width: 92% !important;
+  max-height: 92% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  transform: none !important;
+  margin: auto !important;
+  display: block !important;
+}
+@media (max-width: 760px) {
+  .product-card-media {
+    height: clamp(300px, 92vw, 420px) !important;
+    padding: 18px !important;
+  }
+  .product-card-media img {
+    max-width: 90% !important;
+    max-height: 90% !important;
+  }
+  /* La vista rápida mantiene imagen grande, pero sin afectar la principal */
+  .quick-photo .q-slide img {
+    max-width: 96% !important;
+    max-height: 96% !important;
+  }
+}
+@media (min-width: 761px) {
+  .product-card-media img {
+    max-width: 90% !important;
+    max-height: 90% !important;
+  }
+  .quick-photo .q-slide img {
+    max-width: 96% !important;
+    max-height: 96% !important;
+  }
+}
